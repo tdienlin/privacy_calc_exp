@@ -1,0 +1,1400 @@
+---
+title: "How Do Like and Dislike Buttons Affect Communication? A Privacy Calculus Approach to Understanding Self-Disclosure Online in a One-Week Field Experiment"
+shorttitle : "Online Supplementary Material: Analyses"
+output: 
+  html_document:
+    self_contained: yes
+    mode: selfcontained
+    toc: TRUE
+    toc_float:
+      collapsed: FALSE
+    toc_depth: 2
+---
+
+```{r setup, include=F}
+knitr::opts_chunk$set(
+  cache=T, comment=NA, warning=F, echo=F, error=F, 
+  message=F, prompt=F, tidy=T, fig.height=4
+  )
+options(digits = 3, width = 120)
+```
+
+```{r r-setup, include=F}
+# define packages
+packages <- c("cowplot", "devtools", "GGally", "knitr", "lavaan", "magrittr", 
+              "MVN", "psych", "pwr", "quanteda", "semTools", "tidyverse")
+
+# install packages
+# devtools::install_github("tdienlin/td@v.0.0.2.3")
+# lapply(packages, install.packages, character.only = T, quietly = TRUE)
+
+# load packages
+lapply(packages, library, character.only = TRUE, quietly = TRUE)
+library(td)
+```
+
+```{r Data-Wrangling, include=F}
+# load data
+d_raw <- read_csv("data/data_raw.csv")
+
+# recode variables
+d <- d_raw %>% 
+  dplyr::rename(
+    "male" = "SD01", 
+    "age" = "SD02_01", 
+    "state" = "SD03", 
+    "edu_fac" = "SD04"
+    ) %>% 
+  mutate(
+    
+    #general
+    version = factor(.$VE01_01, labels = c("Control", "Like", "Like & Dislike")),
+    version_no = recode(version, "Control" = 1, "Like" = 2, "Like & Dislike" = 3),
+    male = replace_na(.$male, "[3]") %>% dplyr::recode(., "männlich [1]" = 1, "weiblich [2]" = 0),
+    age_grp = cut(.$age, 
+                  breaks = c(0, 29, 39, 49, 59, 100), 
+                  labels = c("<30", "30-39", "40-49", "50-59", ">59")),
+    
+    # contrasts
+    lik_ctrl = recode(version, "Control" = 0, "Like" = 1),
+    lik_ctrl = na_if(lik_ctrl, "Like & Dislike"),
+    likdis_ctrl = recode(version, "Control" = 0, "Like & Dislike" = 1),
+    likdis_ctrl = na_if(likdis_ctrl, "Like"),
+    likdis_lik = recode(version, "Like" = 0, "Like & Dislike" = 1),
+    likdis_lik = na_if(likdis_lik, "Control"),
+    likdislik_ctrl = recode(version, "Control" = 0, "Like & Dislike" = 1),
+    likdislik_ctrl = na_if(likdislik_ctrl, "Like"),
+    
+    # recode
+    edu = recode(edu_fac, 
+                 "Hauptschulabschluss/Volksschulabschluss" = 1, 
+                 "Noch Schüler" = 1,
+                 "Realschulabschluss (Mittlere Reife)" = 1,
+                 "Abschluss Polytechnische Oberschule 10. Klasse (vor 1965: 8. Klasse)" = 1,
+                 "Anderer Schulabschluss:" = 1,
+                 "Fachhochschulreife (Abschluss einer Fachoberschule)" = 2,
+                 "Abitur, allgemeine oder fachgebundene Hochschulreife (Gymnasium bzw. EOS)" = 2,
+                 "Hochschulabschluss" = 3),
+    PC01_03 = 8 - PC01_03, 
+    SE01_05 = 8 - SE01_05, 
+    SE01_06 = 8 - SE01_06,
+    PL01 = recode(PL01, "2" = 1, .default = 0),
+    PL02 = recode(PL02, "3" = 1, .default = 0),
+    PL03 = recode(PL03, "4" = 1, .default = 0),
+    PL04 = recode(PL04, "2" = 1, .default = 0),
+    IF01_01 = recode(IF01_01, "1" = 1, .default = 0),
+    IF01_02 = recode(IF01_02, "1" = 1, .default = 0),
+    
+    # behavioral data
+    words = replace_na(.$words, 0),
+    self_dis = words + (reactions * 2),
+    time_read_MIN = time_read / 60,
+    time_sum_min_t2 = TIME_SUM_t2 / 60,
+    
+    # take logarithm
+    posts_log = log1p(.$post_count),
+    time_log = log1p(.$time_read), 
+    posts_read_count_log = log1p(.$posts_read_count),
+    words_log = log1p(.$words),
+    self_dis_log = log1p(self_dis)
+  )
+```
+
+```{r defaults, include=F}
+# variable labels
+var_names <- c("Privacy concerns", 
+               "General gratifications", 
+               "Specific gratifications",
+               "Privacy deliberation", 
+               "Self-efficacy", 
+               "General trust", 
+               "Specific trust",
+               "Self-disclosure")
+
+var_names_breaks <- c("Privacy\nconcerns", 
+                      "General\ngratifications", 
+                      "Specific\ngratifications",
+                      "Privacy\ndeliberation", 
+                      "Self-\nefficacy", 
+                      "General\ntrust", 
+                      "Specific\ntrust",
+                      "Self-\ndisclosure")
+```
+
+```{r sample-descriptives, include=F}
+# sample descriptives t1
+n_t1 <- nrow(d)
+age_t1_m <- mean(d$age)
+male_t1_m <- mean(d$male, na.rm = TRUE)
+college_t1_m <- table(d$edu)[3] / n_t1
+
+# sample descriptives t2
+n_t2 <- filter(d, !is.na(id_survey_t2)) %>% nrow()
+age_t2_m <- filter(d, !is.na(id_survey_t2))$age %>% mean()
+male_t2_m <- filter(d, !is.na(id_survey_t2))$male %>% mean(na.rm = TRUE)
+college_t2_m <- filter(d, !is.na(id_survey_t2))$edu %>% table() %>% .[3] / n_t2
+
+# characteristics of posts
+n_comments <- sum(d$post_count, na.rm = TRUE)
+n_words <- sum(d$words_sum, na.rm = TRUE)
+n_time <- sum(d$time_read_MIN, na.rm = TRUE)
+n_posts <- sum(d$post_count, na.rm = TRUE)
+
+# speeding
+time_crit <- 3 # minimum time on survey
+n_speeding <- nrow(filter(d, time_sum_min_t2 < time_crit))
+
+# filter data
+d <- filter(d, time_sum_min_t2 > time_crit) # Deletion of fast respondents
+d <- filter(d, !is.na(username) & !is.na(id_survey_t2))  # Use only completes
+
+# sample descriptives final data set
+n_final <- nrow(d)
+age_final_m <- mean(d$age)
+male_final_m <- mean(d$male, na.rm = TRUE)
+college_final_m <- table(d$edu)[3] / n_final
+```
+
+# Measures
+## Privacy Concerns
+### Items
+
+Using the participation platform I had ...
+
+ 1. ... concerns about what happens to my data.
+ 2. ... concerns about disclosing information about myself.
+ 3. ... no concerns.
+ 4. ... concerns that others could discover my real identity (i.e. my last and first name).
+ 5. ... concerns that information about myself could fall into wrong hands.
+ 6. ... concerns that others could discover what my political views are.
+ 7. ... concerns about my privacy.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, starts_with("PC01"))), 
+                      mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_pricon <- select(d, starts_with("PC01")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "pricon"
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_03 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+Shows that PC01_03 doesn't load well. As it's an inverted item that's not surprising. Also from a theoretic perspective it's suboptional, because it doesn't explicitly focus on privacy, but just concerns in general. Will be deleted.
+
+### CFA updated
+
+```{r}
+name <- "pricon"
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Gratifications general
+### Items
+
+Using the participation platform ...
+ 
+ 1.	... had many benefits for me.
+ 2.	... has paid off for me.
+ 3.	... was useful for me.
+ 4.	... was fun.
+ 5.	... has brought me further regarding content.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, starts_with("GR02"))), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_grats_gen <- select(d, starts_with("GR02")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "grats_general"
+model <- "
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Gratifications specific
+### Items
+
+Using the participation platform it has been possible for me ...
+
+_Information_
+
+ 1.	... to learn things I would not otherwise have noticed.
+ 2.	... to hear the opinion of others.
+ 3.	... to learn how other people tick.
+
+_Relevance_
+
+ 4.	... to react to a subject that is very dear to me.
+ 5.	... to react to a subject that is important to me.
+ 6.	... to react to a subject that I am affected by.
+
+_Political participation_
+
+ 7.	... to engage politically.
+ 8.	... to discuss political issues.
+ 9.	... to pursue my political interest.
+
+_Idealism_
+
+ 10. ... to try to improve society.
+ 11. ... to advocate to something meaningful.
+ 12. ... to serve a good purpose.
+
+_Extrinsic benefits_
+
+ 13. ... to do the responsible persons a favor.
+ 14. ... to soothe my bad consciences.
+ 15. ... to fulfil my civic duty.
+
+### Distributions
+
+```{r fig.height=6}
+ggplot(gather(select(d, starts_with("GR01"))), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=2) + 
+  theme_bw()
+
+des_grats_spec <- select(d, starts_with("GR01")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "grats_specific"
+model <- "
+  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+  grats_par =~ GR01_07 + GR01_08 + GR01_09
+  grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+  grats_ext =~ GR01_13 + GR01_14 + GR01_15
+  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Privacy Deliberation
+### Items
+
+Using the participation platform ...
+
+ 1. ... I have considered whether I could be disadvantaged by writing a comment.
+ 2. ... I have considered whether I could be advantaged by writing a comment.
+ 3. ... I have weighed up the advantages and disadvantages of writing a comment.
+ 4. ... I have thought about consequences of a possible comment.
+ 5. ... I have considered whether I should write a comment or not.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, starts_with("PD01"))), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_pridel <- select(d, starts_with("PD01")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "pridel"
+model <- "
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Trust general
+### Items
+
+ 1. The other users seemed trustworthy.
+ 5. The operators of the participation platform seemed trustworthy.
+ 9. The website seemed trustworthy.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, TR01_01, TR01_05, TR01_09)), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_trust_gen <- select(d, TR01_01, TR01_05, TR01_09) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "trust_gen"
+model <- "
+trust =~ TR01_01 + a*TR01_05 + a*TR01_09
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+Note that we constrained Items 5 and Item 9 to be equal. Explanation: First, they are theoretically related. Second, not constraining would yield to just-identified model, for which model fit cannot be interpreted meaningfully.
+
+## Trust specific
+### Items
+
+_Community_
+
+ 2.	The comments of other users were useful.
+ 3.	The other users had good intentions.
+ 4.	I could rely on the statements of other users.
+
+_Provider_
+
+ 6.	The operators of the participation platform have done a good job.
+ 7.	It was important to the operators that the users are satisfied with the participation platform.
+ 8.	I could rely on the statements of the operators of the participation platform.
+
+_Information System_
+
+ 10.	The website worked well.
+ 11.	I had the impression that my data was necessary for the use of the website.
+ 12.	I found the website useful.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, TR01_02:TR01_04, TR01_06:TR01_08, TR01_10:TR01_12)), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_trust_spec <- select(d, TR01_02:TR01_04, TR01_06:TR01_08, TR01_10:TR01_12) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "trust_spec"
+model <- "
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08
+trust_system =~ TR01_10 + TR01_11 + TR01_12
+
+trust =~ trust_community + trust_provider + trust_system
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Self-Efficacy
+### Items
+
+ 1. In principle, I felt able to write a comment.
+ 2. I have felt technically competent enough to write a comment.
+ 3. Regarding content I have felt competent enough to express my opinion.
+ 4. I found the subject too difficult to express my opinion.
+ 5. I found it complicated to write a comment.
+ 6. I was overburdened to write a comment.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, starts_with("SE01"))), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_selfeff <- select(d, starts_with("SE01")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "self-eff"
+model <- "
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04 + SE01_05 + SE01_06
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+Shows significant misfit. We will run exploratory factor analyses to determine factorial structure.
+
+### EFA
+
+```{r}
+fa.parallel(select(d, SE01_01 : SE01_06))
+fa(r = select(d, SE01_01 : SE01_06), 
+   nfactors = 2, fm = "ml", rotate = "promax")
+```
+
+Implies latent structure with two factors.
+
+### CFA updated
+
+```{r}
+name <- "selfeff"
+model <- "
+self_eff_pos =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+self_eff_neg =~ SE01_05 + SE01_06
+self_eff =~ a*self_eff_pos + a*self_eff_neg
+"
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+Adapted version shows better and adequate fit.
+
+## Self-Disclosure
+### Items
+
+Let us assume that the participation platform would continue to exist in the future. Please indicate to what extent you agree with the following statements:
+
+In the future, I am willing to ...
+
+ 1. ... discuss political issues on the participation platform.
+ 2. ... express my personal opinion on the participation platform.
+ 3. ... write comments on the participation platform.
+ 4. ... disclose concerns and fears on the participation platform.
+ 5. ... share personal experience on the participation platform.
+
+### Distributions
+
+```{r}
+ggplot(gather(select(d, starts_with("WS01"))), 
+       mapping = aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+
+des_futuse <- select(d, starts_with("WS01")) %>% 
+  apply(1, mean, na.rm = TRUE) %>% 
+  as.data.frame() %>% 
+  summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))
+```
+
+### CFA
+
+```{r}
+name <- "futuse"
+model <- "
+fut_use =~ WS01_01 + WS01_02 + WS01_03 + WS01_04 + WS01_05
+"
+sem(model = model, data = d)
+fit <- sem(model = model, data = d, estimator = "MLM")
+```
+
+#### Model fit
+
+```{r}
+(factor_val <- fit_tab(fit, reliability = TRUE, scaled = TRUE))
+assign(paste0(name, "_factor_val"), factor_val)
+```
+
+#### Factor loadingss
+
+```{r}
+inspect(fit,what="std")$lambda
+```
+
+## Baseline Model
+
+In what follows, please find the results of all variables combined in one model. This model will be used to extract factor scores.
+
+```{r}
+model <- "
+  pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+  grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+  grats_par =~ GR01_07 + GR01_08 + GR01_09
+  grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+  grats_ext =~ GR01_13 + GR01_14 + GR01_15
+  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+  pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+  trust_gen =~ TR01_01 + TR01_05 + TR01_09
+  trust_community =~ TR01_02 + TR01_03 + TR01_04
+  trust_provider =~ TR01_06 + TR01_07 + TR01_08
+  trust_system =~ TR01_10 + TR01_11 + TR01_12
+  trust_spec =~ trust_community + trust_provider + trust_system
+  self_eff_pos =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  self_eff_neg =~ SE01_05 + SE01_06
+  self_eff =~ a*self_eff_pos + a*self_eff_neg
+  self_dis_lg =~ self_dis_log
+"
+fit_baseline <- sem(model, data = d, missing = "ML")
+summary(fit_baseline, standardized = TRUE, fit.measures = TRUE)
+
+# extract model predicted values for items & calc means
+d_fs <- lavPredict(fit_baseline, type = "ov") %>% 
+  as.data.frame() %>% 
+  mutate(grats_gen = rowMeans(select(., starts_with("GR02")))) %>% 
+  mutate(grats_spec = rowMeans(select(., starts_with("GR01")))) %>% 
+  mutate(pricon = rowMeans(select(., starts_with("PC01")))) %>% 
+  mutate(trust_gen = rowMeans(select(., TR01_01, TR01_05, TR01_09))) %>%
+  mutate(trust_spec = rowMeans(select(., TR01_02: TR01_04, TR01_06 : TR01_12))) %>% 
+  mutate(pridel = rowMeans(select(., starts_with("PD01")))) %>% 
+  mutate(selfeff = rowMeans(select(., starts_with("SE01")))) %>%
+  select(pricon, grats_gen, grats_spec, pridel, selfeff, trust_gen, trust_spec, self_dis_log) %>% 
+  set_names(var_names_breaks) %>% 
+  mutate(version = d$version)
+```
+
+# Descriptive analyses
+
+We first report the factor validity of all variables combined.
+
+```{r}
+# means of model predicted values
+des <- rbind(des_pricon,
+             des_grats_gen,
+             des_grats_spec,
+             des_pridel,
+             des_selfeff,
+             des_trust_gen,
+             des_trust_spec,
+             des_futuse)
+
+factor_val_tab <- rbind(pricon_factor_val,
+                        grats_general_factor_val,
+                        grats_specific_factor_val,
+                        pridel_factor_val,
+                        selfeff_factor_val,
+                        trust_gen_factor_val,
+                        trust_spec_factor_val) %$%
+  cbind(des[-8, ], .) %>%
+  set_rownames(var_names[-8]) %T>%
+  print()
+# factor_val_tab %>% kable(digits = 2)
+```
+
+In what follows, we report zero-order correlations, distributions, and scatterplots of the variables' factor scores.
+
+```{r zds, fig.height=8, fig.width=8}
+plot_fs_cor <- ggpairs(
+  select(d_fs, -version),
+  upper = list(continuous = "cor"),
+  lower = list(continuous = scat_plot)) +
+  theme_bw()
+print(plot_fs_cor)
+```
+
+# Power analyses
+
+```{r pwr-criteria, include=F}
+z_crit <- 1.96
+alpha <- .05
+power_desired <- .95
+r_sesoi <- .10
+```
+
+We first estimate the sample size necessary to find small effects in 95% of all cases.
+
+```{r pwr-samplesize}
+pwr.r.test(r = r_sesoi, sig.level = alpha, power = power_desired, alternative = "greater") %T>%
+  print %$% 
+  n %>% 
+  round(0) ->
+  n_desired
+```
+
+We then compute the power we have achieved with our finale sample size to detect small effects.
+
+```{r pwr-achieved}
+pwr.r.test(n = n_final, r = r_sesoi, sig.level = alpha, alternative = "greater") %T>%
+  print %$% 
+  power %>% 
+  round(2) ->
+  power_achieved
+```
+
+We finally compute what effect size we are likely to find in 95% of all cases given our final sample size.
+
+```{r pwr-sensitivity}
+pwr.r.test(n = n_final, power = power_desired, sig.level = alpha, alternative = "greater") %T>%
+  print %$% 
+  r %>% 
+  round(2) ->
+  r_sensitive
+```
+
+# Results
+## Privacy calculus
+### Preregistered
+#### Model "Peregistered"
+
+We first test for multivariate normal distribution.
+
+```{r}
+# create subset of data with all items that were used
+d_sub <- d[, c("self_dis_log", "GR02_01", "GR02_02", "GR02_03", "GR02_04", "GR02_05", "PC01_01", "PC01_02", "PC01_04", "PC01_05", "PC01_06", "PC01_07", "TR01_02", "TR01_03", "TR01_04", "TR01_06", "TR01_07", "TR01_08", "TR01_10", "TR01_11", "TR01_12", "PD01_01", "PD01_02", "PD01_03", "PD01_04", "PD01_05", "SE01_01", "SE01_02", "SE01_03", "SE01_04", "male", "age", "edu")]
+
+# test multivariate normal distribution
+mvn_result <- mvn(d_sub, mvnTest = "mardia")
+mvn_result$multivariateNormality
+```
+
+Shows that multivariate normal distribution is violated. We hence use maximum likelihood estimation with robust standard errors and a Satorra-Bentler scaled test statistic.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 # + PC01_03 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_prereg <- sem(model, data = d, estimator = "MLM")
+summary(fit_prereg, fit = TRUE, std = TRUE)
+fit_tab(fit_prereg, scaled = TRUE)
+
+d_coeffs_prereg <- coeffs_tab(fit_prereg, c("a1", "b1", "c1", "d1", "e1")) %>% 
+  mutate(Outcome = rep("Preregistered\nmodel", 5)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\ngeneral", "Privacy\ndelib.", "Self-\nefficacy", "Trust\nspecific")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Trust\nspecific", "Self-\nefficacy", "Privacy\ndelib.", "Grats.\ngeneral", "Privacy\nconcern"))))
+
+plot_coeffs_prereg <- ggplot(d_coeffs_prereg, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+### Exploratory
+#### Model "adapted" 
+
+We now use specific gratifications and general trust.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_adapted <- sem(model, data = d, estimator = "MLM")
+summary(fit_adapted, fit = TRUE, std = TRUE)
+fit_tab(fit_adapted, scaled = TRUE)
+
+d_coeffs_adapted <- coeffs_tab(fit_adapted, c("a1", "b1", "c1", "d1", "e1")) %>% 
+  mutate(Outcome = rep("Adapted\nmodel", 5)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\nspecific", "Privacy\ndelib.", "Self-\nefficacy", "Trust\ngeneral")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Trust\ngeneral", "Self-\nefficacy", "Privacy\ndelib.", "Grats.\nspecific", "Privacy\nconcern"))))
+
+plot_coeffs_adapted <- ggplot(d_coeffs_adapted, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+#### Model "simple"
+
+We now use only variables, that is specific gratifications and privacy concerns.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+self_dis_log ~ a1*pri_con + b1*grats_spec
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_simple <- sem(model, data = d, estimator = "MLM")
+summary(fit_simple, fit = TRUE, std = TRUE)
+fit_tab(fit_simple, scaled = TRUE)
+
+d_coeffs_simple <- coeffs_tab(fit_simple, c("a1", "b1")) %>% 
+  mutate(Outcome = rep("Simple\nmodel", 2)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\nspecific")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Grats.\nspecific", "Privacy\nconcern"))))
+
+plot_coeffs_simple <- ggplot(d_coeffs_simple, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+### Model Comparison
+
+```{r}
+plot_pc <- plot_grid(plot_coeffs_prereg, 
+                     plot_coeffs_adapted, 
+                     plot_coeffs_simple, 
+                     nrow = 1)
+```
+
+```{r}
+model_comp_tab <- data.frame(
+  preregistered = fitmeasures(fit_prereg, c("BIC", "AIC")),
+  adapted = fitmeasures(fit_adapted, c("BIC", "AIC")),
+  simple = fitmeasures(fit_simple, c("BIC", "AIC"))) %>% 
+  t() %T>%
+  print()
+```
+
+## Effects of popularity cues
+### Visualisation
+
+The easiest way to assess the effect of the experimental manipulation on the variables is by visualizing their means. If 95% confidence intervals don't overlap, the variables differ significantly across the conditions. One can quickly see that there aren't any major effects.
+
+```{r}
+plot_fs_m <- ggplot(
+  gather(d_fs, variable, value, -version) %>% 
+    mutate(variable = factor(variable, levels = var_names_breaks)),
+  aes(x = version, y = value, fill = version)) +
+  stat_summary(fun.y = mean, geom = "bar") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = .75) +
+  facet_wrap(~ variable, nrow = 2) + 
+  theme_bw() +
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = .5),
+        panel.spacing = unit(.9, "lines"),
+        text = element_text(size = 12),
+        legend.position="bottom",
+        legend.title = element_blank()) +
+  scale_fill_brewer(palette="Greys")
+plot_fs_m
+```
+
+### Preregistered
+
+In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts. However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).
+
+#### Like vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLM")
+summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_likdis_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLM")
+summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Like
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_lik
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+
+fit_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLM")
+summary(fit_likdis_lik, fit = TRUE, std = TRUE)
+```
+
+### Exploratory
+#### Like vs. control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con ~ a1*lik_ctrl
+grats_spec ~ a2*lik_ctrl
+self_dis_log ~ b1*pri_con + b2*grats_spec + c1*lik_ctrl
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_lik_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLM")
+summary(fit_lik_ctrl_simple, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con + grats_spec ~ likdis_ctrl
+self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_ctrl
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_likdis_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLM")
+summary(fit_likdis_ctrl_simple, std = TRUE)
+```
+
+#### Like & Dislike vs. Like
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con + grats_spec ~ likdis_lik
+self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_lik
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLM")
+summary(fit_likdis_lik, std = TRUE, fit = TRUE)
+```
+
+# Results without Covariates
+
+As stated in our preregistration, we also provide the results of all analyses without controlling for covariates. The results remain the same.
+
+## Privacy calculus
+### Preregistered
+#### Model "Peregistered"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 # + PC01_03 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+"
+fit_nocovs_prereg <- sem(model, data = d, estimator = "MLM")
+summary(fit_nocovs_prereg, fit = TRUE, std = TRUE)
+fit_tab(fit_nocovs_prereg)
+
+d_coeffs_prereg <- coeffs_tab(fit_nocovs_prereg, c("a1", "b1", "c1", "d1", "e1")) %>% 
+  mutate(Outcome = rep("Preregistered\nmodel", 5)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\ngeneral", "Privacy\ndelib.", "Self-\nefficacy", "Trust\nspecific")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Trust\nspecific", "Self-\nefficacy", "Privacy\ndelib.", "Grats.\ngeneral", "Privacy\nconcern"))))
+
+plot_coeffs_prereg <- ggplot(d_coeffs_prereg, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+### Exploratory
+#### Model "better"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+"
+fit_nocovs_adapted <- sem(model, data = d, estimator = "MLM")
+summary(fit_nocovs_adapted, fit = TRUE, std = TRUE)
+fit_tab(fit_nocovs_adapted)
+
+d_coeffs_adapted <- coeffs_tab(fit_nocovs_adapted, c("a1", "b1", "c1", "d1", "e1")) %>% 
+  mutate(Outcome = rep("Adapted\nmodel", 5)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\nspecific", "Privacy\ndelib.", "Self-\nefficacy", "Trust\ngeneral")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Trust\ngeneral", "Self-\nefficacy", "Privacy\ndelib.", "Grats.\nspecific", "Privacy\nconcern"))))
+
+plot_coeffs_adapted <- ggplot(d_coeffs_adapted, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+#### Model "simple"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+self_dis_log ~ a1*pri_con + b1*grats_spec
+"
+fit_nocovs_simple <- sem(model, data = d, estimator = "MLM")
+summary(fit_nocovs_simple, fit = TRUE, std = TRUE)
+fit_tab(fit_nocovs_simple)
+
+d_coeffs_simple <- coeffs_tab(fit_nocovs_simple, c("a1", "b1")) %>% 
+  mutate(Outcome = rep("Simple\nmodel", 2)) %>%  
+  mutate(Predictor = c("Privacy\nconcern", "Grats.\nspecific")) %>% 
+  mutate_at(vars(Predictor), funs(factor(., c("Grats.\nspecific", "Privacy\nconcern"))))
+
+plot_coeffs_simple <- ggplot(d_coeffs_simple, aes(x = b, y = Predictor)) + 
+  theme_bw() +
+  theme(axis.title.x=element_blank()) + 
+  geom_vline(xintercept = 0, lwd = .75, colour = "darkgrey") + 
+  geom_errorbarh(aes(xmin = ll, xmax = ul), 
+                lwd = .75, colour = "grey", height = .2) +
+  geom_errorbarh(aes(xmin = ll, xmax = ul),
+                lwd = .75, colour = "black", height = .2) +
+  geom_point(size = 2) +
+  guides(color = FALSE, shape = FALSE) + 
+  facet_grid(~ Outcome) +
+  theme(axis.title.y = element_blank()) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  theme(panel.spacing = unit(.9, "lines")) + 
+  theme(text = element_text(size = 12))
+```
+
+## Effects of popularity cues
+### Preregisterd
+#### Like vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+"
+fit_nocovs_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLM")
+summary(fit_nocovs_lik_ctrl, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
+"
+fit_nocovs_likdis_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLM")
+summary(fit_nocovs_likdis_ctrl, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Like
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_lik
+"
+
+fit_nocovs_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLM")
+summary(fit_nocovs_likdis_lik, fit = TRUE, std = TRUE)
+```
+
+### Exploratory
+#### Like vs. control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con ~ a1*lik_ctrl
+grats_spec ~ a2*lik_ctrl
+self_dis_log ~ b1*pri_con + b2*grats_spec + c1*lik_ctrl
+"
+fit_nocovs_lik_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLM")
+summary(fit_nocovs_lik_ctrl_simple, fit = TRUE, std = TRUE)
+```
+
+#### Like & Dislike vs. Control
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con + grats_spec ~ likdis_ctrl
+self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_ctrl
+"
+fit_nocovs_likdis_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLM")
+summary(fit_nocovs_likdis_ctrl_simple, std = TRUE)
+```
+
+#### Like & Dislike vs. Like
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+pri_con + grats_spec ~ likdis_lik
+self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_lik
+"
+fit_nocovs_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLM")
+summary(fit_nocovs_likdis_lik, std = TRUE, fit = TRUE)
+```
+
+
+```{r remove-large-objects, include=F}
+obj_keep <- c("d", "d_fs", 
+              "fit_baseline", "fit_adapted", "fit_prereg", "fit_simple",
+              "plot_fs_m", "plot_fs_cor", "plot_pc",
+              "des_pridel",
+              "model_comp_tab", "factor_val_tab",
+              "n_comments", "n_desired", "n_posts", "n_speeding", "n_time", "n_words",
+              "n_comments", "n_words", "n_time", "n_posts", "n_speeding",
+              "n_t1", "age_t1_m", "male_t1_m", "college_t1_m",
+              "n_t2", "age_t2_m", "male_t2_m", "college_t2_m",
+              "n_final", "age_final_m", "male_final_m", "college_final_m",
+              "r_sesoi", "r_sensitive", "power_achieved")
+# rm(list=setdiff(ls(), obj_keep))
+```
+
+```{r SaveData, include = FALSE, cache=F}
+write.csv(d, file = "data/data.csv", row.names = FALSE)
+save(d, d_fs,
+     fit_baseline,
+     fit_adapted, 
+     fit_prereg,
+     fit_simple,
+     plot_fs_m, plot_fs_cor, plot_pc,
+     des_pridel,
+     model_comp_tab, factor_val_tab,
+     n_comments, n_desired, n_posts, n_speeding, n_time, n_words,
+     n_comments, n_words, n_time, n_posts, n_speeding,
+     n_t1, age_t1_m, male_t1_m, college_t1_m,
+     n_t2, age_t2_m, male_t2_m, college_t2_m,
+     n_final, age_final_m, male_final_m, college_final_m,
+     r_sesoi, r_sensitive, power_achieved,
+     file = "data/workspace.RData"
+     )
+```

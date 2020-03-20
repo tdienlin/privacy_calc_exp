@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+data/workspace.RData
+analyses/analyses_cache/
+analyses/analyses_files/
+manuscript/archive
+manuscript/manuscript_cache/
+manuscript/manuscript_files/
+manuscript/manuscript.tex
+manuscript/manuscript.log
