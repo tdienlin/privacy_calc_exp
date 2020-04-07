@@ -2,9 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
-data/workspace.RData
+# data/workspace.RData
 analyses/analyses_cache/
 analyses/analyses_files/
+analyses/analyses_additional_cache/
 manuscript/archive
 manuscript/manuscript_cache/
 manuscript/manuscript_files/
