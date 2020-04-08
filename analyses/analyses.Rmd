@@ -145,16 +145,16 @@ var_names_breaks <- c("Privacy\nconcerns",
 
 # Filter Participants
 
-```{r include=F}
+```{r}
 # filter speeders
 time_crit <- 3 # minimum time on survey
 n_speeding <- nrow(filter(d, time_sum_min_t2 < time_crit))
 d <- filter(d, time_sum_min_t2 >= time_crit) # Deletion of fast respondents
 ```
 
-We've also inspected the data manually for cases with clear response patterns. The following cases show extreme response patterns, fast response times, and were hence removed.
+We first inspected the data manually for cases with obvious response patterns. The following cases show extreme response patterns (alongside fast response times), and were hence removed.
 
-```{r include=F}
+```{r}
 # identify response patterns
 resp_pattern <- c(
   "ANIEVLK9F2SW", "BN4MAOWZO7W2"  # clear response pattern
