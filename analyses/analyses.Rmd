@@ -865,6 +865,7 @@ self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_
 "
 fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
 summary(fit_adapted, fit = TRUE, std = TRUE)
+rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["self_dis_log"]
 ```
 
 ### Model "Simple"
@@ -1112,6 +1113,7 @@ save(d, d_raw, d_all, d_fs,
      n_t2, age_t2_m, male_t2_m, college_t2_m,
      n_matched, n_final, age_final_m, male_final_m, college_final_m,
      r_sesoi, r_sensitive, power_achieved,
+     rsquare_fit_prereg, rsquare_fit_adapted, rsquare_fit_simple,
      file = "data/workspace.RData"
      )
 ```
