@@ -7,6 +7,7 @@ output:
     toc_float:
       collapsed: FALSE
     toc_depth: 2
+    keep_md: true
 ---
 
 ```{r setup, include=F}
@@ -788,20 +789,20 @@ Shows that multivariate normal distribution is violated. We hence use maximum li
 
 In what follows we test for influential cases in baseline model, to detect potentially corrupt data (e.g., people who provided response patterns). Specifically, we compute Cook's distance.
 
-```{r}
+```{r eval=F}
 cooks_dis <- gCD(d, model_baseline)
 plot(cooks_dis)
 ```
 
 The following ten cases have a particularly strong influence on the baseline model.
 
-```{r}
+```{r eval=F}
 infl_cases <- invisible(rownames(print(cooks_dis)))
 ```
 
 Let's inspect these cases.
 
-```{r}
+```{r eval=F}
 infl_cases_tokens <- d[infl_cases, "case_token"] %>% as_vector()
 d %>% 
   filter(case_token %in% infl_cases_tokens) %>% 
@@ -1108,7 +1109,8 @@ save(d, d_raw, d_all, d_fs,
      n_comments, n_desired, n_posts, n_speeding, n_time, n_words,
      n_comments, n_words, n_time, n_posts, n_speeding,
      n_users, n_final,
-     infl_cases, infl_cases_tokens, resp_pattern, n_resp_pattern,
+     # infl_cases, infl_cases_tokens, 
+     resp_pattern, n_resp_pattern,
      n_t1, age_t1_m, male_t1_m, college_t1_m,
      n_t2, age_t2_m, male_t2_m, college_t2_m,
      n_matched, n_final, age_final_m, male_final_m, college_final_m,
