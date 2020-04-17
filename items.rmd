@@ -1,0 +1,124 @@
+---
+title: "List of Items"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float:
+      collapsed: FALSE
+    toc_depth: 2
+---
+
+# Response format
+
+All items were measured on a 7-point scale with Likert-response format. Answers ranged between:
+
+ - &nbsp;-3   completely disagree
+ - &nbsp;-2   disagree
+ - &nbsp;-1   slightly disagree
+ - &nbsp;&nbsp;0   neutral
+ - +1   slightly agree
+ - +2   agree
+ - +3   strongly agree
+
+All items were translated from German.
+
+# Privacy concerns
+
+Using the participation platform I had ...
+
+ 1. ... concerns about what happens to my data.
+ 2. ... concerns about disclosing information about myself.
+ 3. ... no concerns.
+ 4. ... concerns that others could discover my real identity (i.e. my last and first name).
+ 5. ... concerns that information about myself could fall into wrong hands.
+ 6. ... concerns that others could discover what my political views are.
+ 7. ... concerns about my privacy.
+ 
+# Gratifications general
+
+Using the participation platform ...
+ 
+ 1.	... had many benefits for me.
+ 2.	... has paid off for me.
+ 3.	... was worthwhile.
+ 4.	... was fun.
+ 5.	... has brought me further regarding content.
+ 
+# Gratifications specific
+
+Using the participation platform it has been possible for me ...
+
+_Information_
+
+ 1.	... to learn things I would not otherwise have noticed.
+ 2.	... to hear the opinion of others.
+ 3.	... to learn how other people tick.
+
+_Relevance_
+
+ 4.	... to react to a subject that is very dear to me.
+ 5.	... to react to a subject that is important to me.
+ 6.	... to react to a subject that I am affected by.
+
+_Political participation_
+
+ 7.	... to engage politically.
+ 8.	... to discuss political issues.
+ 9.	... to pursue my political interest.
+
+_Idealism_
+
+ 10. ... to try to improve society.
+ 11. ... to advocate to something meaningful.
+ 12. ... to serve a good purpose.
+
+_Extrinsic benefits_
+
+ 13. ... to do the responsible persons a favor.
+ 14. ... to soothe my guilty consciences.
+ 15. ... to fulfil my civic duty.
+ 
+# Privacy deliberation
+
+Using the participation platform ...
+
+ 1. ... I have considered whether I could be disadvantaged by writing a comment.
+ 2. ... I have considered whether I could be advantaged by writing a comment.
+ 3. ... I have weighed up the advantages and disadvantages of writing a comment.
+ 4. ... I have thought about consequences of a possible comment.
+ 5. ... I have considered whether I should write a comment or not.
+ 
+# Trust general
+
+&nbsp;&nbsp;&nbsp;1. The other users seemed trustworthy.  
+&nbsp;&nbsp;&nbsp;5. The operators of the participation platform seemed trustworthy.  
+&nbsp;&nbsp;&nbsp;9. The website seemed trustworthy.  
+ 
+# Trust specific
+
+_Community_
+
+ 2.	The comments of other users were useful.
+ 3.	The other users had good intentions.
+ 4.	I could rely on the statements of other users.
+
+_Provider_
+
+ 6.	The operators of the participation platform have done a good job.
+ 7.	It was important to the operators that the users are satisfied with the participation platform.
+ 8.	I could rely on the statements of the operators of the participation platform.
+
+_Information System_
+
+ 10.	The website worked well.
+ 11.	I had the impression that my data was necessary for the use of the website.
+ 12.	I found the website useful.
+ 
+# Self-efficacy
+
+ 1. In principle, I felt able to write a comment.
+ 2. I felt technically competent enough to write a comment.
+ 3. In terms of the topic, I felt competent enough to express my opinion.
+ 4. I found the topic too difficult to express my opinion.
+ 5. I found it complicated to write a comment.
+ 6. I was overburdened to write a comment.
