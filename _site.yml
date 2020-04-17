@@ -1,0 +1,12 @@
+name: "Privacy Calculus Experiment"
+output_dir: "docs"
+navbar:
+  title: "Privacy Calculus Experiment"
+  left:
+  - text: "Home"
+   href: index.html
+  - text: "Analyses"
+   href: analyses.html
+output:
+  html_document:
+ theme: cosmo
