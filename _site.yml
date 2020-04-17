@@ -1,14 +1,14 @@
 name: "privacy_calc_exp"
 output_dir: "docs"
-# navbar:
-#   title: "Privacy Calculus Experiment"
-#   left:
-#   - text: "Home"
-#    href: index.html
-#   - text: "Analyses"
-#   href: analyses/analyses.html
-#   - text: "Additional Analyses"
-#   href: analyses/analyses_additional.html
+navbar:
+  title: "privacy_calc_exp"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Analyses"
+      href: analyses/analyses.html
+    - text: "Additional Analyses"
+      href: analyses/analyses_additional.html
 output:
   html_document:
     theme: cosmo
