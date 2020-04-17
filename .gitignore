@@ -4,10 +4,14 @@
 .Ruserdata
 # data/workspace.RData
 analyses/analyses_cache/
-analyses/analyses_files/
 analyses/analyses_additional_cache/
 manuscript/archive
 manuscript/manuscript_cache/
-manuscript/manuscript_files/
 manuscript/manuscript.tex
 manuscript/manuscript.log
+docs/analyses/analyses_cache/
+docs/analyses/analyses_additional_cache/
+docs/manuscript/archive
+docs/manuscript/manuscript_cache/
+docs/manuscript/manuscript.tex
+docs/manuscript/manuscript.log
