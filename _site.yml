@@ -9,8 +9,6 @@ navbar:
       href: analyses/analyses.html
     - text: "Additional Analyses"
       href: analyses/analyses_additional.html
-    - text: "Manuscript"
-      href: manuscript/manuscript.pdf
 output:
   html_document:
     theme: cosmo
