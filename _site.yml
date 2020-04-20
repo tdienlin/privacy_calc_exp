@@ -16,8 +16,18 @@ navbar:
       href: preregistration_changes.html
     - text: "Additional Analyses"
       href: analyses_additional.html
+  right:
     - text: "PDF"
+      icon: fa-file
       href: manuscript.pdf
+    - text: "Source Code"
+      icon: fa-lg fa-github
+      href: https://github.com/tdienlin/privacy_calc_exp
+authors:
+  Tobias Dienlin:
+    href: https://tdienlin.github.io
+      
+
 output:
   html_document:
     theme: cosmo

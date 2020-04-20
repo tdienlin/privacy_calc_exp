@@ -23,9 +23,12 @@
 <link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
 <script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -249,6 +252,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -372,18 +378,36 @@ div.tocify {
 <li>
   <a href="analyses_additional.html">Additional Analyses</a>
 </li>
-<li>
-  <a href="manuscript.pdf">PDF</a>
-</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="manuscript.pdf">
+    <span class="fa fa-file"></span>
+     
+    PDF
+  </a>
+</li>
+<li>
+  <a href="https://github.com/tdienlin/privacy_calc_exp">
+    <span class="fa fa-lg fa-github"></span>
+     
+    Source Code
+  </a>
+</li>
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
 
 <div class="fluid-row" id="header">
+
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
 
 
 
@@ -392,9 +416,145 @@ div.tocify {
 </div>
 
 
+<p>In what follows, you can find the analyses for the results we report in the paper. To see the underlying code, click on the button “code”.</p>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<p>We first load the packages; load and wrangle data; and extract sample characteristics and descriptives.</p>
+<pre class="r"><code># install github packages
+# devtools::install_github(&quot;tdienlin/td@v.0.0.2.3&quot;)  # uncomment to install
+
+# define packages
+packages &lt;- c(&quot;cowplot&quot;, &quot;devtools&quot;, &quot;faoutlier&quot;, &quot;GGally&quot;, &quot;gganimate&quot;,
+              &quot;kableExtra&quot;, &quot;knitr&quot;, &quot;lavaan&quot;, &quot;magrittr&quot;, &quot;MVN&quot;, &quot;psych&quot;, &quot;pwr&quot;, 
+              &quot;quanteda&quot;, &quot;semTools&quot;, &quot;tidyverse&quot;, &quot;td&quot;)
+
+# load packages
+lapply(packages, library, character.only = TRUE, quietly = TRUE)
+
+# load data
+# please note that in a prior step several different data sets were merged using information such as case_taken or IP-addresses. To guarantee the privacy of the participants, these data were deleted after merging.
+d_raw &lt;- read_csv(&quot;data/data_raw.csv&quot;)
+
+# recode variables
+d &lt;- d_raw %&gt;% 
+  dplyr::rename(
+    &quot;male&quot; = &quot;SD01&quot;, 
+    &quot;age&quot; = &quot;SD02_01&quot;, 
+    &quot;state&quot; = &quot;SD03&quot;, 
+    &quot;edu_fac&quot; = &quot;SD04&quot;
+    ) %&gt;% 
+  mutate(
+    
+    #general
+    version = factor(.$VE01_01, labels = c(&quot;Control&quot;, &quot;Like&quot;, &quot;Like &amp; Dislike&quot;)),
+    version_no = recode(version, &quot;Control&quot; = 1, &quot;Like&quot; = 2, &quot;Like &amp; Dislike&quot; = 3),
+    male = replace_na(.$male, &quot;[3]&quot;) %&gt;% dplyr::recode(., &quot;männlich [1]&quot; = 1, &quot;weiblich [2]&quot; = 0),
+    age_grp = cut(.$age, 
+                  breaks = c(0, 29, 39, 49, 59, 100), 
+                  labels = c(&quot;&lt;30&quot;, &quot;30-39&quot;, &quot;40-49&quot;, &quot;50-59&quot;, &quot;&gt;59&quot;)),
+    
+    # contrasts
+    lik_ctrl = recode(version, &quot;Control&quot; = 0, &quot;Like&quot; = 1),
+    lik_ctrl = na_if(lik_ctrl, &quot;Like &amp; Dislike&quot;),
+    likdis_ctrl = recode(version, &quot;Control&quot; = 0, &quot;Like &amp; Dislike&quot; = 1),
+    likdis_ctrl = na_if(likdis_ctrl, &quot;Like&quot;),
+    likdis_lik = recode(version, &quot;Like&quot; = 0, &quot;Like &amp; Dislike&quot; = 1),
+    likdis_lik = na_if(likdis_lik, &quot;Control&quot;),
+    likdislik_ctrl = recode(version, &quot;Control&quot; = 0, &quot;Like &amp; Dislike&quot; = 1),
+    likdislik_ctrl = na_if(likdislik_ctrl, &quot;Like&quot;),
+    
+    # recode
+    edu = recode(edu_fac, 
+                 &quot;Hauptschulabschluss/Volksschulabschluss&quot; = 1, 
+                 &quot;Noch Schüler&quot; = 1,
+                 &quot;Realschulabschluss (Mittlere Reife)&quot; = 1,
+                 &quot;Abschluss Polytechnische Oberschule 10. Klasse (vor 1965: 8. Klasse)&quot; = 1,
+                 &quot;Anderer Schulabschluss:&quot; = 1,
+                 &quot;Fachhochschulreife (Abschluss einer Fachoberschule)&quot; = 2,
+                 &quot;Abitur, allgemeine oder fachgebundene Hochschulreife (Gymnasium bzw. EOS)&quot; = 2,
+                 &quot;Hochschulabschluss&quot; = 3),
+    PC01_03 = 8 - PC01_03, 
+    SE01_05 = 8 - SE01_05, 
+    SE01_06 = 8 - SE01_06,
+    
+    # behavioral data
+    words = replace_na(.$words, 0),
+    self_dis = words + (reactions * 2),
+    time_read_MIN = time_read / 60,
+    time_sum_min_t2 = TIME_SUM_t2 / 60,
+    
+    # take logarithm
+    posts_log = log1p(.$post_count),
+    time_log = log1p(.$time_read), 
+    posts_read_count_log = log1p(.$posts_read_count),
+    words_log = log1p(.$words),
+    self_dis_log = log1p(self_dis)
+  )
+
+# variable labels
+var_names &lt;- c(&quot;Privacy concerns&quot;, 
+               &quot;General gratifications&quot;, 
+               &quot;Specific gratifications&quot;,
+               &quot;Privacy deliberation&quot;, 
+               &quot;Self-efficacy&quot;, 
+               &quot;General trust&quot;, 
+               &quot;Specific trust&quot;,
+               &quot;Self-disclosure&quot;)
+
+var_names_breaks &lt;- c(&quot;Privacy\nconcerns&quot;, 
+                      &quot;General\ngratifications&quot;, 
+                      &quot;Specific\ngratifications&quot;,
+                      &quot;Privacy\ndeliberation&quot;, 
+                      &quot;Self-\nefficacy&quot;, 
+                      &quot;General\ntrust&quot;, 
+                      &quot;Specific\ntrust&quot;,
+                      &quot;Self-\ndisclosure&quot;)
+
+# Extract sample characteristics and descriptives.
+# sample descriptives t1
+n_t1 &lt;- nrow(d)
+age_t1_m &lt;- mean(d$age, na.rm = TRUE)
+male_t1_m &lt;- mean(d$male, na.rm = TRUE)
+college_t1_m &lt;- table(d$edu)[3] / n_t1
+
+# sample descriptives t2
+n_t2 &lt;- filter(d, !is.na(id_survey_t2)) %&gt;% nrow()
+age_t2_m &lt;- filter(d, !is.na(id_survey_t2))$age %&gt;% mean()
+male_t2_m &lt;- filter(d, !is.na(id_survey_t2))$male %&gt;% mean(na.rm = TRUE)
+college_t2_m &lt;- filter(d, !is.na(id_survey_t2))$edu %&gt;% table() %&gt;% .[3] / n_t2
+
+# descriptives users
+n_users &lt;- filter(d, !is.na(post_count)) %&gt;% nrow()
+
+# characteristics of posts
+n_comments &lt;- sum(d$post_count, na.rm = TRUE)
+n_words &lt;- sum(d$words, na.rm = TRUE)
+n_time &lt;- sum(d$time_read_MIN, na.rm = TRUE)
+n_posts &lt;- sum(d$post_count, na.rm = TRUE)
+
+# filter unmatched cases
+d &lt;- filter(d, !is.na(post_count) &amp; !is.na(id_survey_t2))  # Use only completes
+n_matched &lt;- nrow(d)
+
+# save data file with all participants to compare results
+d_all &lt;- d</code></pre>
+</div>
 <div id="filter-participants" class="section level1">
 <h1>Filter Participants</h1>
-<p>We first inspected the data manually for cases with obvious response patterns. The following cases show extreme response patterns (alongside fast response times), and were hence removed.</p>
+<p>We filtered participants who answered the questionnaire in less than three minutes, which we considered to be unreasonably fast.</p>
+<pre class="r"><code># filter speeders
+time_crit &lt;- 3  # minimum time on survey
+n_speeding &lt;- nrow(filter(d, time_sum_min_t2 &lt; time_crit))
+d &lt;- filter(d, time_sum_min_t2 &gt;= time_crit)  # Deletion of fast respondents</code></pre>
+<p>We inspected the data manually for cases with obvious response patterns. The following cases show extreme response patterns (alongside fast response times), and were hence removed.</p>
+<pre class="r"><code># identify response patterns
+resp_pattern &lt;- c(&quot;ANIEVLK9F2SW&quot;, &quot;BN4MAOWZO7W2&quot;  # clear response pattern
+)
+n_resp_pattern &lt;- length(resp_pattern)
+# infl_cases_tokens &lt;- infl_cases_tokens[!infl_cases_tokens %in% resp_pattern]
+
+d %&gt;% filter(case_token %in% resp_pattern) %&gt;% select(case_token, GR01_01:SE01_06, topics_entered:reactions, -SO01_01, TIME_SUM_t1, 
+    TIME_SUM_t2) %&gt;% kable() %&gt;% kable_styling(&quot;striped&quot;) %&gt;% scroll_box(width = &quot;100%&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; ">
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
 <thead>
@@ -949,6 +1109,13 @@ ANIEVLK9F2SW
 </tbody>
 </table>
 </div>
+<pre class="r"><code>d %&lt;&gt;% filter(!case_token %in% resp_pattern)
+
+# sample descriptives final data set
+n_final &lt;- nrow(d)
+age_final_m &lt;- mean(d$age)
+male_final_m &lt;- mean(d$male, na.rm = TRUE)
+college_final_m &lt;- table(d$edu)[[3]]/n_final</code></pre>
 </div>
 <div id="measures" class="section level1">
 <h1>Measures</h1>
@@ -969,14 +1136,25 @@ ANIEVLK9F2SW
 </div>
 <div id="distributions" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, starts_with(&quot;PC01&quot;))), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 1) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>des_pricon &lt;- select(d, starts_with(&quot;PC01&quot;)) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;pricon&quot;
+model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_03 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df pvalue   cfi   tli  rmsea   srmr omega alpha   ave
 1  16.1 14  0.307 0.999 0.998 0.0164 0.0104 0.944 0.947 0.724</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        pri_cn
 PC01_01  0.931
 PC01_02  0.901
@@ -989,10 +1167,17 @@ PC01_07  0.928</code></pre>
 </div>
 <div id="cfa-2" class="section level3">
 <h3>CFA 2</h3>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df pvalue   cfi   tli  rmsea    srmr omega alpha   ave
 1    11  9  0.273 0.998 0.997 0.0201 0.00963 0.959  0.96 0.799</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        pri_cn
 PC01_01  0.931
 PC01_02  0.901
@@ -1000,6 +1185,7 @@ PC01_04  0.891
 PC01_05  0.909
 PC01_06  0.796
 PC01_07  0.926</code></pre>
+<p>Updated version shows good fit.</p>
 </div>
 </div>
 <div id="gratifications-general" class="section level2">
@@ -1017,14 +1203,25 @@ PC01_07  0.926</code></pre>
 </div>
 <div id="distributions-1" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, starts_with(&quot;GR02&quot;))), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 1) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>des_grats_gen &lt;- select(d, starts_with(&quot;GR02&quot;)) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-1" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;grats_general&quot;
+model &lt;- &quot;
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df   pvalue   cfi   tli rmsea   srmr omega alpha   ave
 1    34  5 2.35e-06 0.976 0.951 0.102 0.0193 0.934 0.934 0.741</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        grts_g
 GR02_01  0.853
 GR02_02  0.908
@@ -1071,14 +1268,30 @@ GR02_05  0.848</code></pre>
 </div>
 <div id="distributions-2" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, starts_with(&quot;GR01&quot;))), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 2) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<pre class="r"><code>des_grats_spec &lt;- select(d, starts_with(&quot;GR01&quot;)) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-3" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;grats_specific&quot;
+model &lt;- &quot;
+  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+  grats_par =~ GR01_07 + GR01_08 + GR01_09
+  grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+  grats_ext =~ GR01_13 + GR01_14 + GR01_15
+  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df pvalue   cfi   tli  rmsea   srmr omega alpha   ave
 1   270 85      0 0.941 0.928 0.0624 0.0527 0.933 0.946 0.586</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        grts_n grts_r grts_p grts_d grts_x grts_s
 GR01_01  0.688  0.000  0.000  0.000  0.000      0
 GR01_02  0.819  0.000  0.000  0.000  0.000      0
@@ -1112,14 +1325,25 @@ GR01_15  0.000  0.000  0.000  0.000  0.848      0</code></pre>
 </div>
 <div id="distributions-3" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, starts_with(&quot;PD01&quot;))), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 1) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<pre class="r"><code>des_pridel &lt;- select(d, starts_with(&quot;PD01&quot;)) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-4" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;pridel&quot;
+model &lt;- &quot;
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df  pvalue  cfi  tli  rmsea   srmr omega alpha   ave
 1  15.6  5 0.00825 0.98 0.96 0.0614 0.0235 0.843 0.848 0.532</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        pr_dlb
 PD01_01  0.849
 PD01_02  0.653
@@ -1138,14 +1362,26 @@ PD01_05  0.656</code></pre>
 </div>
 <div id="distributions-4" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, TR01_01, TR01_05, TR01_09)), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 1) + 
+    theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre class="r"><code>des_trust_gen &lt;- select(d, TR01_01, TR01_05, TR01_09) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-5" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;trust_gen&quot;
+model &lt;- &quot;
+trust =~ TR01_01 + a*TR01_05 + a*TR01_09
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df pvalue   cfi   tli  rmsea   srmr omega alpha   ave
 1  2.07  1   0.15 0.998 0.993 0.0438 0.0125 0.864 0.873 0.701</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        trust
 TR01_01 0.660
 TR01_05 0.923
@@ -1178,14 +1414,30 @@ TR01_09 0.898</code></pre>
 </div>
 <div id="distributions-5" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, TR01_02:TR01_04, TR01_06:TR01_08, TR01_10:TR01_12)), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, 
+    nrow = 1) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
+<pre class="r"><code>des_trust_spec &lt;- select(d, TR01_02:TR01_04, TR01_06:TR01_08, TR01_10:TR01_12) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% 
+    summarise(m = mean(., na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-6" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;trust_spec&quot;
+model &lt;- &quot;
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08
+trust_system =~ TR01_10 + TR01_11 + TR01_12
+
+trust =~ trust_community + trust_provider + trust_system
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df   pvalue   cfi   tli  rmsea   srmr omega alpha   ave
 1  89.1 24 2.02e-09 0.963 0.944 0.0697 0.0351 0.921  0.93 0.613</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        trst_c trst_p trst_s trust
 TR01_02  0.814  0.000  0.000     0
 TR01_03  0.765  0.000  0.000     0
@@ -1200,10 +1452,20 @@ TR01_12  0.000  0.000  0.817     0</code></pre>
 <div id="cfa-2-1" class="section level3">
 <h3>CFA 2</h3>
 <p>Because there was Heywoodcase, we now also run a model in which the subdimensions <code>provider</code> and <code>system</code> are combined.</p>
+<pre class="r"><code>name &lt;- &quot;trust_spec&quot;
+model &lt;- &quot;
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust =~ b*trust_community + b*trust_provider
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df   pvalue   cfi   tli  rmsea   srmr omega alpha  ave
 1  99.5 26 1.57e-10 0.958 0.942 0.0711 0.0369 0.921 0.931 0.62</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        trst_c trst_p trust
 TR01_02  0.808  0.000     0
 TR01_03  0.773  0.000     0
@@ -1232,14 +1494,25 @@ TR01_12  0.000  0.840     0</code></pre>
 </div>
 <div id="distributions-6" class="section level3">
 <h3>Distributions</h3>
+<pre class="r"><code>ggplot(gather(select(d, starts_with(&quot;SE01&quot;))), mapping = aes(x = value)) + geom_bar() + facet_wrap(~key, nrow = 1) + theme_bw()</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
+<pre class="r"><code>des_selfeff &lt;- select(d, starts_with(&quot;SE01&quot;)) %&gt;% apply(1, mean, na.rm = TRUE) %&gt;% as.data.frame() %&gt;% summarise(m = mean(., 
+    na.rm = TRUE), sd = sd(., na.rm = TRUE))</code></pre>
 </div>
 <div id="cfa-7" class="section level3">
 <h3>CFA</h3>
+<pre class="r"><code>name &lt;- &quot;self-eff&quot;
+model &lt;- &quot;
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04 + SE01_05 + SE01_06
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df   pvalue  cfi   tli rmsea   srmr omega alpha  ave
 1  96.1  9 1.11e-16 0.86 0.766 0.132 0.0671 0.854 0.851 0.49</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        slf_ff
 SE01_01  0.842
 SE01_02  0.689
@@ -1251,10 +1524,20 @@ SE01_06  0.633</code></pre>
 </div>
 <div id="cfa-2-2" class="section level3">
 <h3>CFA 2</h3>
+<pre class="r"><code>name &lt;- &quot;selfeff&quot;
+model &lt;- &quot;
+self_eff_pos =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+SE01_01 ~~ x*SE01_02
+SE01_03 ~~ x*SE01_04
+&quot;
+fit &lt;- sem(model = model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)</code></pre>
 <p>Model fit:</p>
+<pre class="r"><code>(factor_val &lt;- fit_tab(fit, reliability = TRUE, scaled = TRUE))</code></pre>
 <pre><code>  chisq df pvalue   cfi   tli  rmsea   srmr omega alpha   ave
 1  3.23  1 0.0721 0.993 0.957 0.0633 0.0136 0.862 0.833 0.592</code></pre>
+<pre class="r"><code>assign(paste0(name, &quot;_factor_val&quot;), factor_val)</code></pre>
 <p>Factor loadings:</p>
+<pre class="r"><code>inspect(fit, what = &quot;std&quot;)$lambda</code></pre>
 <pre><code>        slf_f_
 SE01_01  0.828
 SE01_02  0.675
@@ -1266,6 +1549,29 @@ SE01_04  0.787</code></pre>
 <div id="baseline-model" class="section level2">
 <h2>Baseline model</h2>
 <p>In what follows, please find the results of all variables combined in one model. This model will be used to extract factor scores.</p>
+<pre class="r"><code>model_baseline &lt;- &quot;
+  pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+  grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+  grats_par =~ GR01_07 + GR01_08 + GR01_09
+  grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+  grats_ext =~ GR01_13 + GR01_14 + GR01_15
+  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+  pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+  trust_gen =~ TR01_01 + TR01_05 + TR01_09
+  trust_community =~ TR01_02 + TR01_03 + TR01_04
+  trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+  trust_spec =~ trust_community + trust_provider
+  self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+    SE01_01 ~~ x*SE01_02
+    SE01_03 ~~ x*SE01_04
+  self_dis_lg =~ self_dis_log
+  
+  self_dis_lg ~~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec + f1*trust_gen + g1*grats_spec
+&quot;
+fit_baseline &lt;- sem(model_baseline, data = d, missing = &quot;ML&quot;)
+summary(fit_baseline, standardized = TRUE, fit.measures = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 179 iterations
 
   Estimator                                         ML
@@ -1577,20 +1883,373 @@ Variances:
 <div id="descriptive-analyses" class="section level1">
 <h1>Descriptive analyses</h1>
 <p>We first report the factor validity of all variables combined.</p>
-<pre><code>                           m    sd  chisq df   pvalue   cfi   tli  rmsea    srmr omega alpha   ave
-Privacy concerns        3.21 1.514  11.04  9 2.73e-01 0.998 0.997 0.0201 0.00963 0.959 0.960 0.799
-General gratifications  4.76 1.219  34.03  5 2.35e-06 0.976 0.951 0.1019 0.01930 0.934 0.934 0.741
-Specific gratifications 4.71 1.019 269.77 85 0.00e+00 0.941 0.928 0.0624 0.05266 0.933 0.946 0.586
-Privacy deliberation    3.93 1.285  15.55  5 8.25e-03 0.980 0.960 0.0614 0.02350 0.843 0.848 0.532
-Self-efficacy           5.25 1.118   3.23  1 7.21e-02 0.993 0.957 0.0633 0.01360 0.862 0.833 0.592
-General trust           5.21 1.039   2.07  1 1.50e-01 0.998 0.993 0.0438 0.01250 0.864 0.873 0.701
-Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694 0.921 0.931 0.620</code></pre>
+<pre class="r"><code># extract model predicted values for items &amp; calc means
+d_fs &lt;- lavPredict(fit_baseline, type = &quot;ov&quot;) %&gt;% as.data.frame() %&gt;% mutate(version = d$version, grats_gen_fs = rowMeans(select(., 
+    starts_with(&quot;GR02&quot;))), grats_spec_fs = rowMeans(select(., starts_with(&quot;GR01&quot;))), pri_con_fs = rowMeans(select(., starts_with(&quot;PC01&quot;))), 
+    trust_gen_fs = rowMeans(select(., TR01_01, TR01_05, TR01_09)), trust_spec_fs = rowMeans(select(., TR01_02:TR01_04, TR01_06:TR01_12)), 
+    pri_del_fs = rowMeans(select(., starts_with(&quot;PD01&quot;))), self_eff_fs = rowMeans(select(., starts_with(&quot;SE01&quot;)))) %&gt;% select(version, 
+    pri_con_fs, grats_gen_fs, grats_spec_fs, pri_del_fs, self_eff_fs, trust_gen_fs, trust_spec_fs, self_dis_log)
+
+# combine d with d factor scores
+d %&lt;&gt;% cbind(select(d_fs, -version, -self_dis_log))
+
+# rename for plotting
+d_fs %&lt;&gt;% set_names(c(&quot;version&quot;, var_names_breaks))
+
+# means of model predicted values
+des &lt;- rbind(des_pricon, des_grats_gen, des_grats_spec, des_pridel, des_selfeff, des_trust_gen, des_trust_spec)
+
+factor_val_tab &lt;- rbind(pricon_factor_val, grats_general_factor_val, grats_specific_factor_val, pridel_factor_val, selfeff_factor_val, 
+    trust_gen_factor_val, trust_spec_factor_val) %$% cbind(des[-8, ], .) %&gt;% set_rownames(var_names[-8])
+
+factor_val_tab %&gt;% kable() %&gt;% kable_styling(&quot;striped&quot;) %&gt;% scroll_box(width = &quot;100%&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; ">
+<table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+m
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+chisq
+</th>
+<th style="text-align:right;">
+df
+</th>
+<th style="text-align:right;">
+pvalue
+</th>
+<th style="text-align:right;">
+cfi
+</th>
+<th style="text-align:right;">
+tli
+</th>
+<th style="text-align:right;">
+rmsea
+</th>
+<th style="text-align:right;">
+srmr
+</th>
+<th style="text-align:right;">
+omega
+</th>
+<th style="text-align:right;">
+alpha
+</th>
+<th style="text-align:right;">
+ave
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Privacy concerns
+</td>
+<td style="text-align:right;">
+3.21
+</td>
+<td style="text-align:right;">
+1.514
+</td>
+<td style="text-align:right;">
+11.04
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+0.273
+</td>
+<td style="text-align:right;">
+0.998
+</td>
+<td style="text-align:right;">
+0.997
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+<td style="text-align:right;">
+0.959
+</td>
+<td style="text-align:right;">
+0.960
+</td>
+<td style="text-align:right;">
+0.799
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+General gratifications
+</td>
+<td style="text-align:right;">
+4.76
+</td>
+<td style="text-align:right;">
+1.219
+</td>
+<td style="text-align:right;">
+34.03
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.976
+</td>
+<td style="text-align:right;">
+0.951
+</td>
+<td style="text-align:right;">
+0.102
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.934
+</td>
+<td style="text-align:right;">
+0.934
+</td>
+<td style="text-align:right;">
+0.741
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Specific gratifications
+</td>
+<td style="text-align:right;">
+4.71
+</td>
+<td style="text-align:right;">
+1.019
+</td>
+<td style="text-align:right;">
+269.77
+</td>
+<td style="text-align:right;">
+85
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.941
+</td>
+<td style="text-align:right;">
+0.928
+</td>
+<td style="text-align:right;">
+0.062
+</td>
+<td style="text-align:right;">
+0.053
+</td>
+<td style="text-align:right;">
+0.933
+</td>
+<td style="text-align:right;">
+0.946
+</td>
+<td style="text-align:right;">
+0.586
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Privacy deliberation
+</td>
+<td style="text-align:right;">
+3.93
+</td>
+<td style="text-align:right;">
+1.285
+</td>
+<td style="text-align:right;">
+15.55
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.008
+</td>
+<td style="text-align:right;">
+0.980
+</td>
+<td style="text-align:right;">
+0.960
+</td>
+<td style="text-align:right;">
+0.061
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+<td style="text-align:right;">
+0.843
+</td>
+<td style="text-align:right;">
+0.848
+</td>
+<td style="text-align:right;">
+0.532
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Self-efficacy
+</td>
+<td style="text-align:right;">
+5.25
+</td>
+<td style="text-align:right;">
+1.118
+</td>
+<td style="text-align:right;">
+3.23
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.072
+</td>
+<td style="text-align:right;">
+0.993
+</td>
+<td style="text-align:right;">
+0.957
+</td>
+<td style="text-align:right;">
+0.063
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+<td style="text-align:right;">
+0.862
+</td>
+<td style="text-align:right;">
+0.833
+</td>
+<td style="text-align:right;">
+0.592
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+General trust
+</td>
+<td style="text-align:right;">
+5.21
+</td>
+<td style="text-align:right;">
+1.039
+</td>
+<td style="text-align:right;">
+2.07
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.150
+</td>
+<td style="text-align:right;">
+0.998
+</td>
+<td style="text-align:right;">
+0.993
+</td>
+<td style="text-align:right;">
+0.044
+</td>
+<td style="text-align:right;">
+0.012
+</td>
+<td style="text-align:right;">
+0.864
+</td>
+<td style="text-align:right;">
+0.873
+</td>
+<td style="text-align:right;">
+0.701
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Specific trust
+</td>
+<td style="text-align:right;">
+5.08
+</td>
+<td style="text-align:right;">
+0.942
+</td>
+<td style="text-align:right;">
+99.48
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.958
+</td>
+<td style="text-align:right;">
+0.942
+</td>
+<td style="text-align:right;">
+0.071
+</td>
+<td style="text-align:right;">
+0.037
+</td>
+<td style="text-align:right;">
+0.921
+</td>
+<td style="text-align:right;">
+0.931
+</td>
+<td style="text-align:right;">
+0.620
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>In what follows, we report zero-order correlations, distributions, and scatterplots of the variables’ factor scores.</p>
-<p><img src="analyses_files/figure-html/zds-1.png" width="768" /></p>
+<pre class="r"><code>fig_fs_cor &lt;- ggpairs(select(d_fs, -version), upper = list(continuous = &quot;cor&quot;), lower = list(continuous = wrap(td::scat_plot, 
+    coords = c(1, 7, 0, 7)))) + theme_bw()
+print(fig_fs_cor)</code></pre>
+<p><img src="analyses_files/figure-html/unnamed-chunk-43-1.png" width="768" /></p>
 </div>
 <div id="power-analyses" class="section level1">
 <h1>Power analyses</h1>
 <p>We first estimate the sample size necessary to find small effects in 95% of all cases.</p>
+<pre class="r"><code># estimate pwr-samplesize
+n_desired &lt;- pwr.r.test(r = r_sesoi, sig.level = alpha, power = power_desired, alternative = &quot;greater&quot;) %T&gt;% print %$% n %&gt;% 
+    round(0)</code></pre>
 <pre><code>
      approximate correlation power calculation (arctangh transformation) 
 
@@ -1600,6 +2259,9 @@ Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694
           power = 0.95
     alternative = greater</code></pre>
 <p>We then compute the power we have achieved with our finale sample size to detect small effects.</p>
+<pre class="r"><code># compute pwr-achieved
+power_achieved &lt;- pwr.r.test(n = n_final, r = r_sesoi, sig.level = alpha, alternative = &quot;greater&quot;) %T&gt;% print %$% power %&gt;% 
+    round(2)</code></pre>
 <pre><code>
      approximate correlation power calculation (arctangh transformation) 
 
@@ -1609,6 +2271,9 @@ Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694
           power = 0.765
     alternative = greater</code></pre>
 <p>We finally compute what effect size we are likely to find in 95% of all cases given our final sample size.</p>
+<pre class="r"><code># estimate pwr-sensitivity
+r_sensitive &lt;- pwr.r.test(n = n_final, power = power_desired, sig.level = alpha, alternative = &quot;greater&quot;) %T&gt;% print %$% 
+    r %&gt;% round(2)</code></pre>
 <pre><code>
      approximate correlation power calculation (arctangh transformation) 
 
@@ -1622,6 +2287,14 @@ Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694
 <h1>Assumptions</h1>
 <div id="multivariate-normal-distribution" class="section level2">
 <h2>Multivariate normal distribution</h2>
+<pre class="r"><code># create subset of data with all items that were used
+d_sub &lt;- d[, c(&quot;self_dis_log&quot;, &quot;GR02_01&quot;, &quot;GR02_02&quot;, &quot;GR02_03&quot;, &quot;GR02_04&quot;, &quot;GR02_05&quot;, &quot;PC01_01&quot;, &quot;PC01_02&quot;, &quot;PC01_04&quot;, &quot;PC01_05&quot;, 
+    &quot;PC01_06&quot;, &quot;PC01_07&quot;, &quot;TR01_02&quot;, &quot;TR01_03&quot;, &quot;TR01_04&quot;, &quot;TR01_06&quot;, &quot;TR01_07&quot;, &quot;TR01_08&quot;, &quot;TR01_10&quot;, &quot;TR01_11&quot;, &quot;TR01_12&quot;, 
+    &quot;PD01_01&quot;, &quot;PD01_02&quot;, &quot;PD01_03&quot;, &quot;PD01_04&quot;, &quot;PD01_05&quot;, &quot;SE01_01&quot;, &quot;SE01_02&quot;, &quot;SE01_03&quot;, &quot;SE01_04&quot;, &quot;male&quot;, &quot;age&quot;, &quot;edu&quot;)]
+
+# test multivariate normal distribution
+mvn_result &lt;- mvn(d_sub, mvnTest = &quot;mardia&quot;)
+mvn_result$multivariateNormality</code></pre>
 <pre><code>             Test        Statistic p value Result
 1 Mardia Skewness 16419.9039541698       0     NO
 2 Mardia Kurtosis 83.1186126223766       0     NO
@@ -1631,8 +2304,2036 @@ Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694
 <div id="influential-cases" class="section level2">
 <h2>Influential cases</h2>
 <p>In what follows we test for influential cases in baseline model, to detect potentially corrupt data (e.g., people who provided response patterns). Specifically, we compute Cook’s distance.</p>
+<pre class="r"><code>cooks_dis &lt;- gCD(d, model_baseline)
+plot(cooks_dis)</code></pre>
+<p><img src="analyses_files/figure-html/unnamed-chunk-49-1.png" width="672" /></p>
 <p>The following ten cases have a particularly strong influence on the baseline model.</p>
+<pre class="r"><code>infl_cases &lt;- invisible(rownames(print(cooks_dis)))</code></pre>
+<pre><code>         gCD
+368 0.000577
+531 0.000575
+154 0.000557
+71  0.000460
+412 0.000409
+484 0.000319
+492 0.000305
+390 0.000294
+101 0.000290
+290 0.000267</code></pre>
 <p>Let’s inspect these cases.</p>
+<pre class="r"><code>infl_cases_tokens &lt;- d[infl_cases, &quot;case_token&quot;] %&gt;% as_vector()
+d %&gt;% filter(case_token %in% infl_cases_tokens) %&gt;% select(case_token, GR01_01:SE01_06, topics_entered:reactions, -SO01_01, 
+    TIME_SUM_t1, TIME_SUM_t2) %&gt;% kable() %&gt;% kable_styling(&quot;striped&quot;) %&gt;% scroll_box(width = &quot;100%&quot;)</code></pre>
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; ">
+<table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+case_token
+</th>
+<th style="text-align:right;">
+GR01_01
+</th>
+<th style="text-align:right;">
+GR01_02
+</th>
+<th style="text-align:right;">
+GR01_03
+</th>
+<th style="text-align:right;">
+GR01_04
+</th>
+<th style="text-align:right;">
+GR01_05
+</th>
+<th style="text-align:right;">
+GR01_06
+</th>
+<th style="text-align:right;">
+GR01_07
+</th>
+<th style="text-align:right;">
+GR01_08
+</th>
+<th style="text-align:right;">
+GR01_09
+</th>
+<th style="text-align:right;">
+GR01_10
+</th>
+<th style="text-align:right;">
+GR01_11
+</th>
+<th style="text-align:right;">
+GR01_12
+</th>
+<th style="text-align:right;">
+GR01_13
+</th>
+<th style="text-align:right;">
+GR01_14
+</th>
+<th style="text-align:right;">
+GR01_15
+</th>
+<th style="text-align:right;">
+GR02_01
+</th>
+<th style="text-align:right;">
+GR02_02
+</th>
+<th style="text-align:right;">
+GR02_03
+</th>
+<th style="text-align:right;">
+GR02_04
+</th>
+<th style="text-align:right;">
+GR02_05
+</th>
+<th style="text-align:right;">
+PC01_01
+</th>
+<th style="text-align:right;">
+PC01_02
+</th>
+<th style="text-align:right;">
+PC01_03
+</th>
+<th style="text-align:right;">
+PC01_04
+</th>
+<th style="text-align:right;">
+PC01_05
+</th>
+<th style="text-align:right;">
+PC01_06
+</th>
+<th style="text-align:right;">
+PC01_07
+</th>
+<th style="text-align:right;">
+TR01_01
+</th>
+<th style="text-align:right;">
+TR01_02
+</th>
+<th style="text-align:right;">
+TR01_03
+</th>
+<th style="text-align:right;">
+TR01_04
+</th>
+<th style="text-align:right;">
+TR01_05
+</th>
+<th style="text-align:right;">
+TR01_06
+</th>
+<th style="text-align:right;">
+TR01_07
+</th>
+<th style="text-align:right;">
+TR01_08
+</th>
+<th style="text-align:right;">
+TR01_09
+</th>
+<th style="text-align:right;">
+TR01_10
+</th>
+<th style="text-align:right;">
+TR01_11
+</th>
+<th style="text-align:right;">
+TR01_12
+</th>
+<th style="text-align:right;">
+PD01_01
+</th>
+<th style="text-align:right;">
+PD01_02
+</th>
+<th style="text-align:right;">
+PD01_03
+</th>
+<th style="text-align:right;">
+PD01_04
+</th>
+<th style="text-align:right;">
+PD01_05
+</th>
+<th style="text-align:right;">
+SE01_01
+</th>
+<th style="text-align:right;">
+SE01_02
+</th>
+<th style="text-align:right;">
+SE01_03
+</th>
+<th style="text-align:right;">
+SE01_04
+</th>
+<th style="text-align:right;">
+SE01_05
+</th>
+<th style="text-align:right;">
+SE01_06
+</th>
+<th style="text-align:right;">
+topics_entered
+</th>
+<th style="text-align:right;">
+posts_read_count
+</th>
+<th style="text-align:right;">
+time_read
+</th>
+<th style="text-align:right;">
+topic_count
+</th>
+<th style="text-align:right;">
+post_count
+</th>
+<th style="text-align:right;">
+words
+</th>
+<th style="text-align:right;">
+reactions
+</th>
+<th style="text-align:right;">
+TIME_SUM_t1
+</th>
+<th style="text-align:right;">
+TIME_SUM_t2
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+JSU0FKN5OJXI
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+166
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+71
+</td>
+<td style="text-align:right;">
+422
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+A53ZPKWW7L9R
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+61
+</td>
+<td style="text-align:right;">
+784
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+656
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+106
+</td>
+<td style="text-align:right;">
+562
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M3H0ET6VYXXI
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+234
+</td>
+<td style="text-align:right;">
+9952
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+42
+</td>
+<td style="text-align:right;">
+3198
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+100
+</td>
+<td style="text-align:right;">
+571
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NBFML5FHXKOS
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+52
+</td>
+<td style="text-align:right;">
+793
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+82
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+109
+</td>
+<td style="text-align:right;">
+463
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+UXM8PTLWO1K5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+375
+</td>
+<td style="text-align:right;">
+10743
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+1438
+</td>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+78
+</td>
+<td style="text-align:right;">
+353
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EKAORTWZ9CN0
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+106
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+43
+</td>
+<td style="text-align:right;">
+444
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+VSM6ERELCYUJ
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+120
+</td>
+<td style="text-align:right;">
+1854
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3052
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+71
+</td>
+<td style="text-align:right;">
+499
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FQF9HRPD7UEH
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+323
+</td>
+<td style="text-align:right;">
+4715
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+1340
+</td>
+<td style="text-align:right;">
+19
+</td>
+<td style="text-align:right;">
+142
+</td>
+<td style="text-align:right;">
+375
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EZ6BYM6XCJK6
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+202
+</td>
+<td style="text-align:right;">
+4111
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+1572
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+78
+</td>
+<td style="text-align:right;">
+735
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+S2WON6845UK3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+381
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>These data do not reveal potential cases of response patterns. Indeed, answer times suggest that respondents were diligent.</p>
 </div>
 </div>
@@ -1642,6 +4343,24 @@ Specific trust          5.08 0.942  99.48 26 1.57e-10 0.958 0.942 0.0711 0.03694
 <h2>Privacy calculus</h2>
 <div id="model-peregistered" class="section level3">
 <h3>Model “Peregistered”</h3>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_prereg &lt;- sem(model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_prereg, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 323 iterations
 
   Estimator                                         ML
@@ -1980,10 +4699,32 @@ Variances:
    .trust_communty    0.242    0.044    5.485    0.000    0.231    0.231
    .trust_provider    0.101    0.043    2.374    0.018    0.093    0.093
     trust_spec        0.806    0.099    8.135    0.000    1.000    1.000</code></pre>
+<pre class="r"><code>rsquare_fit_prereg &lt;- inspect(fit_prereg, what = &quot;rsquare&quot;)[&quot;self_dis_log&quot;]</code></pre>
 </div>
 <div id="model-adapted" class="section level3">
 <h3>Model “Adapted”</h3>
 <p>Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.</p>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_adapted &lt;- sem(model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;, missing = &quot;ML&quot;)
+summary(fit_adapted, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 354 iterations
 
   Estimator                                         ML
@@ -2362,10 +5103,27 @@ Variances:
     pri_delib         2.195    0.157   14.006    0.000    1.000    1.000
     self_eff          1.249    0.113   11.070    0.000    1.000    1.000
     trust_gen         0.591    0.072    8.264    0.000    1.000    1.000</code></pre>
+<pre class="r"><code>rsquare_fit_adapted &lt;- inspect(fit_adapted, what = &quot;rsquare&quot;)[&quot;self_dis_log&quot;]</code></pre>
 </div>
 <div id="model-simple" class="section level3">
 <h3>Model “Simple”</h3>
 <p>We now use only variables, that is specific gratifications and privacy concerns.</p>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+self_dis_log ~ a1*pri_con + b1*grats_spec
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+&quot;
+fit_simple &lt;- sem(model, data = d, estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_simple, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 260 iterations
 
   Estimator                                         ML
@@ -2630,9 +5388,12 @@ Variances:
    .grats_ide         0.182    0.047    3.836    0.000    0.137    0.137
    .grats_ext         0.257    0.066    3.914    0.000    0.381    0.381
     grats_spec        0.617    0.118    5.223    0.000    1.000    1.000</code></pre>
+<pre class="r"><code>rsquare_fit_simple &lt;- inspect(fit_simple, what = &quot;rsquare&quot;)[&quot;self_dis_log&quot;]</code></pre>
 </div>
 <div id="comparison" class="section level3">
 <h3>Comparison</h3>
+<pre class="r"><code>model_comp_tab &lt;- data.frame(preregistered = fitmeasures(fit_prereg, c(&quot;BIC&quot;, &quot;AIC&quot;)), adapted = fitmeasures(fit_adapted, 
+    c(&quot;BIC&quot;, &quot;AIC&quot;)), simple = fitmeasures(fit_simple, c(&quot;BIC&quot;, &quot;AIC&quot;))) %&gt;% t() %T&gt;% print()</code></pre>
 <pre><code>                bic   aic
 preregistered 48949 48097
 adapted       57409 56441
@@ -2640,7 +5401,33 @@ simple        37168 36567</code></pre>
 </div>
 <div id="visualization" class="section level3">
 <h3>Visualization</h3>
-<p><img src="analyses_files/figure-html/unnamed-chunk-51-1.png" width="672" /></p>
+<pre class="r"><code># extract coeffs
+d_coeffs_baseline &lt;- coeffs_tab(fit_baseline, c(&quot;a1&quot;, &quot;b1&quot;, &quot;c1&quot;, &quot;d1&quot;, &quot;e1&quot;, &quot;f1&quot;, &quot;g1&quot;)) %&gt;% mutate(Model = rep(&quot;Bivariate\nrelations&quot;, 
+    7), Predictor = c(&quot;Privacy\nconcern&quot;, &quot;Grats.\ngeneral&quot;, &quot;Privacy\ndelib.&quot;, &quot;Self-\nefficacy&quot;, &quot;Trust\nspecific&quot;, &quot;Trust\ngeneral&quot;, 
+    &quot;Grats.\nspecific&quot;))
+
+d_coeffs_prereg &lt;- coeffs_tab(fit_prereg, c(&quot;a1&quot;, &quot;b1&quot;, &quot;c1&quot;, &quot;d1&quot;, &quot;e1&quot;)) %&gt;% mutate(Model = rep(&quot;Preregistered\nmodel&quot;, 
+    5), Predictor = c(&quot;Privacy\nconcern&quot;, &quot;Grats.\ngeneral&quot;, &quot;Privacy\ndelib.&quot;, &quot;Self-\nefficacy&quot;, &quot;Trust\nspecific&quot;))
+
+d_coeffs_adapted &lt;- coeffs_tab(fit_adapted, c(&quot;a1&quot;, &quot;b1&quot;, &quot;c1&quot;, &quot;d1&quot;, &quot;e1&quot;)) %&gt;% mutate(Model = rep(&quot;Adapted\nmodel&quot;, 5), 
+    Predictor = c(&quot;Privacy\nconcern&quot;, &quot;Grats.\nspecific&quot;, &quot;Privacy\ndelib.&quot;, &quot;Self-\nefficacy&quot;, &quot;Trust\ngeneral&quot;))
+
+d_coeffs_simple &lt;- coeffs_tab(fit_simple, c(&quot;a1&quot;, &quot;b1&quot;)) %&gt;% mutate(Model = rep(&quot;Simple\nmodel&quot;, 2), Predictor = c(&quot;Privacy\nconcern&quot;, 
+    &quot;Grats.\nspecific&quot;))
+
+d_coeffs &lt;- rbind(d_coeffs_baseline, d_coeffs_prereg, d_coeffs_adapted, d_coeffs_simple) %&gt;% mutate(Predictor = factor(Predictor, 
+    c(&quot;Trust\ngeneral&quot;, &quot;Trust\nspecific&quot;, &quot;Self-\nefficacy&quot;, &quot;Privacy\ndelib.&quot;, &quot;Privacy\nconcern&quot;, &quot;Grats.\nspecific&quot;, 
+        &quot;Grats.\ngeneral&quot;)), Model = factor(Model, c(&quot;Bivariate\nrelations&quot;, &quot;Preregistered\nmodel&quot;, &quot;Adapted\nmodel&quot;, &quot;Simple\nmodel&quot;)))
+
+# plot coeffs
+fig_coeffs &lt;- ggplot(d_coeffs, aes(x = b, y = Predictor)) + geom_vline(xintercept = 0, lwd = 0.75, colour = &quot;darkgrey&quot;) + 
+    geom_point(size = 2) + geom_errorbarh(aes(xmin = ll, xmax = ul), lwd = 0.75, colour = &quot;grey&quot;, height = 0.2) + geom_errorbarh(aes(xmin = ll, 
+    xmax = ul), lwd = 0.75, colour = &quot;black&quot;, height = 0.2) + facet_grid(~Model) + guides(color = FALSE, shape = FALSE) + 
+    theme_bw() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), plot.title = element_text(hjust = 0.5), 
+    panel.spacing = unit(0.9, &quot;lines&quot;), text = element_text(size = 12)) + coord_cartesian(xlim = c(-1.5, 1.5))
+
+fig_coeffs</code></pre>
+<p><img src="analyses_files/figure-html/unnamed-chunk-56-1.png" width="672" /></p>
 </div>
 </div>
 <div id="effects-of-popularity-cues" class="section level2">
@@ -2648,13 +5435,41 @@ simple        37168 36567</code></pre>
 <div id="visualisation" class="section level3">
 <h3>Visualisation</h3>
 <p>The easiest way to assess the effect of the experimental manipulation on the variables is by visualizing their means. If 95% confidence intervals don’t overlap, the variables differ significantly across the conditions. One can quickly see that there aren’t any major effects.</p>
-<p><img src="analyses_files/figure-html/unnamed-chunk-52-1.png" width="672" /></p>
+<pre class="r"><code>fig_fs_m &lt;- ggplot(gather(d_fs, variable, value, -version) %&gt;% mutate(variable = factor(variable, levels = var_names_breaks)), 
+    aes(x = version, y = value, fill = version)) + stat_summary(fun.y = mean, geom = &quot;bar&quot;) + stat_summary(fun.data = mean_cl_normal, 
+    geom = &quot;errorbar&quot;, width = 0.75) + facet_wrap(~variable, nrow = 2) + theme_bw() + theme(axis.title.y = element_blank(), 
+    axis.title.x = element_blank(), axis.text.x = element_blank(), plot.title = element_text(hjust = 0.5), panel.spacing = unit(0.9, 
+        &quot;lines&quot;), text = element_text(size = 12), legend.position = &quot;bottom&quot;, legend.title = element_blank()) + coord_cartesian(ylim = c(0, 
+    7)) + scale_fill_brewer(palette = &quot;Greys&quot;)
+fig_fs_m</code></pre>
+<p><img src="analyses_files/figure-html/unnamed-chunk-57-1.png" width="672" /></p>
 </div>
 <div id="preregistered" class="section level3">
 <h3>Preregistered</h3>
-<p>In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts. However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).</p>
+<p>In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts.</p>
+<p>However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).</p>
+<p>For these models, we report less complex versions using factors scores, which converge successfully.</p>
 <div id="like-vs.-control" class="section level4">
 <h4>Like vs. Control</h4>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_lik_ctrl &lt;- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_lik_ctrl, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 did NOT end normally after 3268 iterations
 ** WARNING ** Estimates below are most likely unreliable
 
@@ -2945,6 +5760,23 @@ Variances:
    .trust_provider  -96.962       NA                    -85.846  -85.846
    .trust_spec        0.008       NA                      1.000    1.000</code></pre>
 <p>Model did not converge. It’s likely too complex given the reduced number of participants. The trust subdimension “provider” seems to cause trouble. Will hence be substituted with factor score.</p>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_spec =~ trust_spec_fs
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_lik_ctrl &lt;- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_lik_ctrl, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 242 iterations
 
   Estimator                                         ML
@@ -3211,9 +6043,29 @@ Variances:
    .pri_delib         1.945    0.202    9.609    0.000    1.000    1.000
    .self_eff          1.330    0.135    9.835    0.000    0.999    0.999
    .trust_spec        0.767    0.056   13.675    0.000    0.993    0.993</code></pre>
+<p>Now converges sucessfully.</p>
 </div>
 <div id="like-dislike-vs.-control" class="section level4">
 <h4>Like &amp; Dislike vs. Control</h4>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_likdis_ctrl &lt;- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 did NOT end normally after 2423 iterations
 ** WARNING ** Estimates below are most likely unreliable
 
@@ -3505,6 +6357,23 @@ Variances:
    .trust_provider  -63.585       NA                    -60.198  -60.198
    .trust_spec        0.013       NA                      1.000    1.000</code></pre>
 <p>Again, does not converge; will use <code>Trust Specific</code> as factor score.</p>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_spec =~ trust_spec_fs
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+fit_likdis_ctrl &lt;- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 222 iterations
 
   Estimator                                         ML
@@ -3775,6 +6644,26 @@ Variances:
 </div>
 <div id="like-dislike-vs.-like" class="section level4">
 <h4>Like &amp; Dislike vs. Like</h4>
+<pre class="r"><code>model &lt;- &quot;
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
+self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_lik
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+&quot;
+
+fit_likdis_lik &lt;- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = &quot;MLR&quot;, missing = &quot;ML&quot;)
+summary(fit_likdis_lik, fit = TRUE, std = TRUE)</code></pre>
 <pre><code>lavaan 0.6-5 ended normally after 328 iterations
 
   Estimator                                         ML
@@ -4151,6 +7040,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 <script>
 $(document).ready(function ()  {

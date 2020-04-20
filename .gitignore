@@ -5,6 +5,7 @@
 # data/workspace.RData
 analyses_cache/
 analyses_additional_cache/
+archive/
 manuscript/archive
 manuscript_cache/
 manuscript.tex

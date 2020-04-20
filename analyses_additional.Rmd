@@ -6,17 +6,24 @@ output:
     toc_float:
       collapsed: FALSE
     toc_depth: 2
+    code_folding: hide
 ---
 
 ```{r setup, include=F}
 knitr::opts_chunk$set(
-  cache=T, comment=NA, warning=F, echo=F, error=F, 
+  cache=T, comment=NA, warning=F, echo=T, error=F, 
   message=F, prompt=F, tidy=T, fig.height=4
   )
 options(digits = 3, width = 120)
 ```
 
-```{r r-setup, include=F}
+In what follows, please find the results of additional analyses. These include models, results without covariates, results with all participants (hence, including those removed due to speeding).
+
+# Set-up
+
+Load packages.
+
+```{r r-setup, results='hide'}
 # define packages
 packages <- c("cowplot", "devtools", "faoutlier", "GGally", "kableExtra",
               "knitr", "lavaan", "magrittr", "MVN", "psych", "pwr", "quanteda",
@@ -26,16 +33,18 @@ packages <- c("cowplot", "devtools", "faoutlier", "GGally", "kableExtra",
 lapply(packages, library, character.only = TRUE, quietly = TRUE)
 ```
 
-```{r Data-Wrangling, include=F, cache=F}
+Load data.
+
+```{r Data-Wrangling, cache=F}
 # load workspace
 load("data/workspace.rdata")
 ```
 
 # VIF
 
-In what follows, you can find estimations of variance inflation factors to gauge multicollinearity. Generally, values above 5 or even 10 are considered problematic. However, these are only rules of thumb, and multcollinearity can occour with lower values. Indeed, although the values reported below are not above 5, they are increased, suggesting that multicollinearity might be at play here, which the regular analyses also confirm.
+In what follows, you can find estimations of variance inflation factors, which help gauge multicollinearity. Generally, values above 5 or even 10 are considered problematic. However, these are only rules of thumb, and multcollinearity can occour with lower values. Indeed, although the values reported below are not above 5, they are increased, suggesting that multicollinearity might be at play here, which the regular analyses also confirm.
 
-```{r vif, include=F}
+```{r vif}
 # Self-Efficacy
 model <- "
 pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
@@ -151,7 +160,7 @@ tibble("Gratifications" = vif_grats_gen, "Trust Specific" = vif_trust_spec, "Pri
 
 # Additional analyses
 
-In what follows, you can find slightly different models that were also run.
+In what follows, you can find slightly different models that were also explored.
 
 ## Privacy calculus
 ### Model 1
