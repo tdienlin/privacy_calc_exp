@@ -19,14 +19,11 @@ affiliation:
   - id            : "2"
     institution   : "University of Koblenz-Landau"
 author_note: |
-  All authors contributed extensively to the work presented in this paper. TD, KB, & ST designed the study; KB & TD designed the online website; TD & KB administered the data collection and importation; TD wrote the code, ran the models, and analyzed the output data; TD wrote the manuscript and ST provided comments; ST supervised the project. 
-  The authors declare no competing interests.
+    All authors contributed extensively to the work presented in this paper. TD, KB, & ST designed the study; KB & TD designed the online website; TD & KB administered the data collection and importation; TD wrote the code, ran the models, and analyzed the output data; TD wrote the manuscript, ST provided comments; ST supervised the project. The authors declare no competing interests.
   
+    This research was funded by the Volkswagen Foundation, project "Transformations of privacy", which was awarded to Sandra Seubert, Sabine Trepte, Ruediger Grimm, & Christoph Gusy. We would like to thank all our colleagues from the project and Niklas Johannes for valuable feedback. 
   
-  This research was funded by the Volkswagen Foundation, project "Transformations of privacy", which was awarded to Sandra Seubert, Sabine Trepte, Ruediger Grimm, & Christoph Gusy. We would like to thank all our colleagues from the project and Niklas Johannes for valuable feedback. 
-  
-  
-  This manuscript features online supplementary material, which includes the data, code, additional analyses, and a reproducible version of the manuscript (https://osf.io/hcqat/?view_only=5db35868738d40609b11e58cc343a9b0).
+    This manuscript features online supplementary material, which includes the data, code, additional analyses, and a reproducible version of the manuscript (https://tdienlin.github.io/privacy_calc_exp).
 abstract: |
     According to the privacy calculus, both privacy concerns and expected gratifications explain self-disclosure online. So far, however, most findings were based on self-reports, and little is known about whether the privacy calculus can be used to explain observations of actual behavior. Likewise, we still know little as to whether the privacy calculus can be influenced by the design of online websites, including for example popularity cues such as like and dislike buttons. To answer these questions, we ran a preregistered one-week field experiment. Participants were randomly distributed to three different websites, on which they discussed a current political topic. The final sample consisted of `r knitr::load_cache(label = "load-data", object = "n_matched")` participants. Although the originally preregistered model could not be confirmed, the results showed that a considerable share of actual self-disclosure could be explained by privacy concerns, gratifications, privacy deliberation, trust, and self-efficacy. The impact of the popularity cues on self-disclosure and the privacy calculus was negligible. In conclusion, the results suggest that privacy concerns and expected benefits are relevant when it comes to understanding self-disclosure, which together provides further evidence against the privacy paradox.
 keywords          : "privacy calculus, self-disclosure, popularity cues, field experiment, structural equation modeling, preregistration"
@@ -40,7 +37,7 @@ tablelist         : no
 footnotelist      : no
 linenumbers       : yes
 mask              : no
-wordcount         : "`r wordcountaddin::word_count('manuscript/manuscript.Rmd')`"
+wordcount         : "`r wordcountaddin::word_count('manuscript.Rmd')`"
 draft             : no
 documentclass     : "apa6"
 classoption       : "man"
@@ -60,15 +57,16 @@ output:
 ---
 
 ```{r include=F}
-knitr::opts_chunk$set(cache=F, echo=F)
+knitr::opts_chunk$set(cache=F, echo=F, warning=F, message=F)
 ```
 
 ```{r setup, include=F}
+# install github packages
+# devtools::install_github("tdienlin/td@v.0.0.2.3")
+
 # load packages
-pcks <- c("devtools", "jpeg", "knitr", "lavaan", "magrittr", "papaja", "png", "pwr", "semTools", "tidyverse")
+pcks <- c("devtools", "jpeg", "knitr", "lavaan", "magrittr", "papaja", "png", "pwr", "semTools", "td", "tidyverse")
 invisible(lapply(pcks, library, character.only = TRUE))
-# install_github("tdienlin/td@v.0.0.2.3")
-library(td)
 
 # create bib with r-packages
 r_refs(file = "bibliography/r-references.bib")
@@ -88,7 +86,7 @@ load("data/workspace.rData")
 # Introduction
 
 Understanding why people disclose personal information online remains a critical question for both society and research. 
-Originally, it was claimed that self-disclosure is mostly erratic, and that self-disclosure cannot be predicted by assessing people's personal beliefs, concerns, or standpoints. 
+Originally, it was claimed that self-disclosure is erratic and that it cannot be predicted people's personal beliefs, concerns, or standpoints. 
 Most prominently, the privacy paradox stated that people self-disclose vast amounts of personal information online *despite* having substantial concerns about their privacy [@barnesPrivacyParadoxSocial2006; @taddickenUsesPrivacyOnline2011].
 
 Somewhat surprisingly, and despite its popularity in the media [@newyorkpublicradioPrivacyParadox2018], the privacy paradox has garnered little empirical support. 
@@ -126,7 +124,9 @@ The first defines self-disclosure as _deliberate_ acts of sharing truthful infor
 The second considers _all_ acts of sharing information---be they active or passive, deliberate or unwitting---as self-disclosure, because each piece of information allows for meaningful inferences about a person [@watzlawickPragmaticsHumanCommunication2011]. 
 In this paper we follow the latter approach, not least because the recent years have illustrated how easy it is to derive personal insights simply by analyzing exchanged communication [@kosinskiPrivateTraitsAttributes2013]. 
 Moreover, independent from which position one adopts, it is possible to differentiate the content of self-disclosure into three different dimensions: breadth (i.e., number of topics covered), depth (i.e., intimacy of topics covered), and length (i.e., quantity of disclosure) [@omarzuDisclosureDecisionModel2000]. 
-In this study we mainly focus on communication quantity, as we consider communication quantity to be a necessary precondition and hence valid proxy for self-disclosure.
+In this study we mainly focus on communication quantity as proxy for self-disclosure.
+The relation between communication quantity and self-disclosure is not linear. 
+Impressions are formed quickly, and the more we have already expressed about ourselves the harder it becomes to self-disclose novel information.
 
 Privacy concerns have been defined as follows: 
 "Concerns about online privacy represent how much an individual is motivated to focus on his or her control over a voluntary withdrawal from other people or societal institutions on the Internet, accompanied by an uneasy feeling that his or her privacy might be threatened" [@dienlinLongitudinalAnalysisPrivacy2019, p. 6]. 
@@ -152,7 +152,7 @@ In light of the lack of empirical studies and the plausibility of both effects, 
 
 RQ1: Are people more or less likely to self-disclose on a website when they more actively deliberate about whether they should self-disclose?
 
-Several attempts have already been made to expand the privacy calculus [@dinevExtendedPrivacyCalculus2006], introducing additional variables such as self-efficacy or trust. 
+Several attempts have already been made to expand the privacy calculus, introducing additional variables such as self-efficacy or trust [@dinevExtendedPrivacyCalculus2006]. 
 Self-efficacy in the context of the privacy calculus captures whether people believe in their own capability to implement particular privacy behaviors in the future [@dienlinExtendedPrivacyCalculus2016].
 These privacy behaviors refer to either self-_disclosure_ (e.g., publishing a blog post) or self-_withdrawal_ (e.g., deleting inappropriate content).
 People who report more privacy self-efficacy also engage in more self-withdrawal  [@chenRevisitingPrivacyParadox2018].
@@ -160,7 +160,7 @@ In light of our focus on active communication, in this study we investigate the 
 
 H3: People are more likely to self-disclose on a website when their self-efficacy about self-disclosing on the website is higher.
 
-Trust can be conceptualized in two different ways [@gefenTrustTAMOnline2003]: 
+The next variable, trust, can be conceptualized in two different ways [@gefenTrustTAMOnline2003]: 
 It either captures "_specific_ beliefs dealing primarily with the integrity, benevolence, and ability of another party" [@gefenTrustTAMOnline2003, p. 55, emphasis added] or a "_general_ belief that another party can be trusted" [@gefenTrustTAMOnline2003, p.55, emphasis added]. 
 Whereas specific trust focuses on the causes of trust, general trust emphasized the experience of trust.
 @gefenTrustTAMOnline2003 prioritize specific trust (p. 60). 
@@ -216,7 +216,7 @@ knitr::include_graphics("figures/design/model.png")
 # Methods
 ## Open Science
 
-The online supplementary material (OSM) of this study includes the data, research materials, analyses scripts, and a reproducible version of this manuscript (see https://osf.io/hcqat/?view_only=5db35868738d40609b11e58cc343a9b0).
+The online supplementary material (OSM) of this study includes the data, research materials, analyses scripts, and a reproducible version of this manuscript, which can be found on the manuscript's online companion website (https://tdienlin.github.io/privacy_calc_exp).
 We preregistered the study using the registration form _OSF Prereg_, which includes the hypotheses, sample size, research materials, analyses, and exclusion criteria (see https://osf.io/a6tzc/?view_only=5d0ef9fe5e1745878cd1b19273cdf859). 
 We needed to change our pre-defined plan in some cases. 
 For a full account of all changes, see OSM. 
@@ -235,7 +235,7 @@ In a first step, the agency sent its panel members an invitation to participate 
 In this invitation, panel members were asked to participate in a study analyzing the current threat posed by terrorist attacks in Germany.[^1] 
 Members who decided to take part were subsequently sent the first questionnaire (_T1_), in which we asked about their sociodemographics, provided more details about the study, and included a registration link for the website. 
 Afterward, participants were randomly assigned to one of the three websites. 
-After registration was completed, participants could discuss the topic of the terrorism threat in Germany over the course of one week (_field_). 
+After registration was completed, participants were invited (but not obliged) to discuss the topic of the terrorism threat in Germany over the course of one week (_field_). 
 Subsequently, participants received a follow-up questionnaire in which the self-reported measures were collected (_T2_). 
 Measures were collected after and not before the field phase in order not to prime participants or reveal our primary research interest.
 
@@ -346,7 +346,7 @@ The updated scale exhibited adequate fit.
 
 Self-disclosure was calculated by taking the log scale of the number of words each participant wrote in a comment, to which we added the number of likes and dislikes, which were multiplied by two. 
 The number of likes and dislikes were multiplied by two because, rudimentarily, like buttons abbreviate the sentence “I like” and dislike buttons “I dislike”.
-The sum of words and likes/dislikes was log-scaled because the relative amount of self-disclosure diminishes the more a person has already said.
+The sum of words and likes/dislikes was log-scaled because the relative amount of self-disclosure diminishes the more a person has already expressed.
 
 ## Data analysis
 
@@ -443,8 +443,7 @@ The picture remained the same also when analyzing variables not included in the 
 Note that some differences missed statistical significance only marginally (e.g., specific gratifications for the comparison between the website with like buttons and the control website without like and dislike buttons). 
 Nevertheless, we refrain from reading too much into these differences and conclude that the three websites were comparable regarding the privacy calculus variables and the amount of self-disclosure.
 
-```{r popularitycues, fig.cap="Overview of the variables for the three websites. Control: Website without buttons. Like: Website with like buttons. Like \\& Dislike: Website with like and dislike buttons.", out.width = "\\textwidth", fig.pos = "!h"}
-# knitr::include_graphics("figures/results/fig_pop.pdf")
+```{r popularitycues, fig.cap="Overview of the model-predicted values for each variable, separated for the three websites. Control: Website without buttons. Like: Website with like buttons. Like \\& Dislike: Website with like and dislike buttons.", out.width = "\\textwidth", fig.pos = "!h"}
 print(fig_fs_m)
 ```
 

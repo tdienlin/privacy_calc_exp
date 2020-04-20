@@ -3,7 +3,7 @@ title: "Changes From Preregistration"
 output: "html_document"
 ---
 
-The preregistration can be found here. In what follows, we present where we decided to deviate from preregistration.
+The preregistration can be found [here](https://osf.io/a6tzc/?view_only=5d0ef9fe5e1745878cd1b19273cdf859). In what follows, we present where we decided to deviate from preregistration.
 
 # Theoretical Background
 ## Hypotheses

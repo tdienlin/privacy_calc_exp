@@ -6,32 +6,35 @@ output:
     toc_float:
       collapsed: FALSE
     toc_depth: 2
+    code_folding: hide
 ---
 
 ```{r setup, include=F}
 knitr::opts_chunk$set(
-  cache=T, comment=NA, warning=F, echo=F, error=F, 
+  cache=T, comment=NA, warning=F, echo=T, error=F, 
   message=F, prompt=F, tidy=T, fig.height=4
   )
 options(digits = 3, width = 120)
 ```
 
-```{r r-setup, include=F}
+In what follows, you can find the analyses for the results we report in the paper. To see the underlying code, click on the button "code".
+
+# Setup
+
+We first load the packages; load and wrangle data; and extract sample characteristics and descriptives.
+
+```{r results='hide'}
+# install github packages
+# devtools::install_github("tdienlin/td@v.0.0.2.3")  # uncomment to install
+
 # define packages
 packages <- c("cowplot", "devtools", "faoutlier", "GGally", "gganimate",
               "kableExtra", "knitr", "lavaan", "magrittr", "MVN", "psych", "pwr", 
-              "quanteda", "semTools", "tidyverse")
-
-# install packages # uncomment lines to install packages
-# devtools::install_github("tdienlin/td@v.0.0.2.3")
-# lapply(packages, install.packages, character.only = T, quietly = TRUE)
+              "quanteda", "semTools", "tidyverse", "td")
 
 # load packages
 lapply(packages, library, character.only = TRUE, quietly = TRUE)
-library(td)
-```
 
-```{r Data-Wrangling, include=F}
 # load data
 # please note that in a prior step several different data sets were merged using information such as case_taken or IP-addresses. To guarantee the privacy of the participants, these data were deleted after merging.
 d_raw <- read_csv("data/data_raw.csv")
@@ -91,9 +94,27 @@ d <- d_raw %>%
     words_log = log1p(.$words),
     self_dis_log = log1p(self_dis)
   )
-```
 
-```{r include=F}
+# variable labels
+var_names <- c("Privacy concerns", 
+               "General gratifications", 
+               "Specific gratifications",
+               "Privacy deliberation", 
+               "Self-efficacy", 
+               "General trust", 
+               "Specific trust",
+               "Self-disclosure")
+
+var_names_breaks <- c("Privacy\nconcerns", 
+                      "General\ngratifications", 
+                      "Specific\ngratifications",
+                      "Privacy\ndeliberation", 
+                      "Self-\nefficacy", 
+                      "General\ntrust", 
+                      "Specific\ntrust",
+                      "Self-\ndisclosure")
+
+# Extract sample characteristics and descriptives.
 # sample descriptives t1
 n_t1 <- nrow(d)
 age_t1_m <- mean(d$age, na.rm = TRUE)
@@ -121,28 +142,11 @@ n_matched <- nrow(d)
 
 # save data file with all participants to compare results
 d_all <- d
-
-# variable labels
-var_names <- c("Privacy concerns", 
-               "General gratifications", 
-               "Specific gratifications",
-               "Privacy deliberation", 
-               "Self-efficacy", 
-               "General trust", 
-               "Specific trust",
-               "Self-disclosure")
-
-var_names_breaks <- c("Privacy\nconcerns", 
-                      "General\ngratifications", 
-                      "Specific\ngratifications",
-                      "Privacy\ndeliberation", 
-                      "Self-\nefficacy", 
-                      "General\ntrust", 
-                      "Specific\ntrust",
-                      "Self-\ndisclosure")
 ```
 
 # Filter Participants
+
+We filtered participants who answered the questionnaire in less than three minutes, which we considered to be unreasonably fast.
 
 ```{r}
 # filter speeders
@@ -151,7 +155,7 @@ n_speeding <- nrow(filter(d, time_sum_min_t2 < time_crit))
 d <- filter(d, time_sum_min_t2 >= time_crit) # Deletion of fast respondents
 ```
 
-We first inspected the data manually for cases with obvious response patterns. The following cases show extreme response patterns (alongside fast response times), and were hence removed.
+We inspected the data manually for cases with obvious response patterns. The following cases show extreme response patterns (alongside fast response times), and were hence removed.
 
 ```{r}
 # identify response patterns
@@ -233,7 +237,6 @@ Shows that PC01_03 doesn't load well. As it's an inverted item that's not surpri
 ### CFA 2
 
 ```{r}
-name <- "pricon"
 model <- "
 pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
 "
@@ -252,6 +255,8 @@ Factor loadings:
 ```{r}
 inspect(fit,what="std")$lambda
 ```
+
+Updated version shows good fit.
 
 ## Gratifications general
 ### Items
@@ -715,13 +720,17 @@ factor_val_tab <- rbind(pricon_factor_val,
                         trust_gen_factor_val,
                         trust_spec_factor_val) %$%
   cbind(des[-8, ], .) %>%
-  set_rownames(var_names[-8]) %T>%
-  print()
+  set_rownames(var_names[-8])
+
+factor_val_tab %>% 
+  kable() %>% 
+  kable_styling("striped") %>% 
+  scroll_box(width = "100%")
 ```
 
 In what follows, we report zero-order correlations, distributions, and scatterplots of the variables' factor scores.
 
-```{r zds, fig.height=8, fig.width=8}
+```{r fig.height=8, fig.width=8}
 fig_fs_cor <- ggpairs(
   select(d_fs, -version),
   upper = list(continuous = "cor"),
@@ -732,7 +741,8 @@ print(fig_fs_cor)
 
 # Power analyses
 
-```{r pwr-criteria, include=F}
+```{r include=F}
+# define pwr-criteria
 z_crit <- 1.96
 alpha <- .05
 power_desired <- .95
@@ -741,7 +751,8 @@ r_sesoi <- .10
 
 We first estimate the sample size necessary to find small effects in 95% of all cases.
 
-```{r pwr-samplesize}
+```{r}
+# estimate pwr-samplesize
 pwr.r.test(r = r_sesoi, sig.level = alpha, power = power_desired, alternative = "greater") %T>%
   print %$% 
   n %>% 
@@ -751,7 +762,8 @@ pwr.r.test(r = r_sesoi, sig.level = alpha, power = power_desired, alternative = 
 
 We then compute the power we have achieved with our finale sample size to detect small effects.
 
-```{r pwr-achieved}
+```{r}
+# compute pwr-achieved
 pwr.r.test(n = n_final, r = r_sesoi, sig.level = alpha, alternative = "greater") %T>%
   print %$% 
   power %>% 
@@ -761,7 +773,8 @@ pwr.r.test(n = n_final, r = r_sesoi, sig.level = alpha, alternative = "greater")
 
 We finally compute what effect size we are likely to find in 95% of all cases given our final sample size.
 
-```{r pwr-sensitivity}
+```{r}
+# estimate pwr-sensitivity
 pwr.r.test(n = n_final, power = power_desired, sig.level = alpha, alternative = "greater") %T>%
   print %$% 
   r %>% 
@@ -787,20 +800,20 @@ Shows that multivariate normal distribution is violated. We hence use maximum li
 
 In what follows we test for influential cases in baseline model, to detect potentially corrupt data (e.g., people who provided response patterns). Specifically, we compute Cook's distance.
 
-```{r eval=F}
+```{r eval=T}
 cooks_dis <- gCD(d, model_baseline)
 plot(cooks_dis)
 ```
 
 The following ten cases have a particularly strong influence on the baseline model.
 
-```{r eval=F}
+```{r eval=T}
 infl_cases <- invisible(rownames(print(cooks_dis)))
 ```
 
 Let's inspect these cases.
 
-```{r eval=F}
+```{r eval=T}
 infl_cases_tokens <- d[infl_cases, "case_token"] %>% as_vector()
 d %>% 
   filter(case_token %in% infl_cases_tokens) %>% 
@@ -970,13 +983,18 @@ fig_fs_m <- ggplot(
         text = element_text(size = 12),
         legend.position="bottom",
         legend.title = element_blank()) +
+  coord_cartesian(ylim = c(0, 7)) +
   scale_fill_brewer(palette="Greys")
 fig_fs_m
 ```
 
 ### Preregistered
 
-In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts. However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).
+In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts. 
+
+However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).
+
+For these models, we report less complex versions using factors scores, which converge successfully.
 
 #### Like vs. Control
 
@@ -1023,6 +1041,8 @@ self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_
 fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
 summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
 ```
+
+Now converges sucessfully.
 
 #### Like & Dislike vs. Control
 
