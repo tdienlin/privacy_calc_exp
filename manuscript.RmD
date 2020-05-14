@@ -25,7 +25,7 @@ author_note: |
   
     This manuscript features online supplementary material, which includes the data, code, additional analyses, and a reproducible version of the manuscript (https://tdienlin.github.io/privacy_calc_exp).
 abstract: |
-    According to the privacy calculus, both privacy concerns and expected gratifications explain self-disclosure online. So far, however, most findings were based on self-reports, and little is known about whether the privacy calculus can be used to explain observations of actual behavior. Likewise, we still know little as to whether the privacy calculus can be influenced by the design of online websites, including for example popularity cues such as like and dislike buttons. To answer these questions, we ran a preregistered one-week field experiment. Participants were randomly distributed to three different websites, on which they discussed a current political topic. The final sample consisted of `r knitr::load_cache(label = "load-data", object = "n_matched")` participants. Although the originally preregistered model could not be confirmed, the results showed that a considerable share of actual self-disclosure could be explained by privacy concerns, gratifications, privacy deliberation, trust, and self-efficacy. The impact of the popularity cues on self-disclosure and the privacy calculus was negligible. In conclusion, the results suggest that privacy concerns and expected benefits are relevant when it comes to understanding self-disclosure, which together provides further evidence against the privacy paradox.
+    According to the privacy calculus, both privacy concerns and expected gratifications explain self-disclosure online. So far, however, most findings were based on self-reports, and little is known about whether the privacy calculus can be used to explain observations of actual behavior. Likewise, we still know little as to whether the privacy calculus can be influenced by the design of online websites, including for example popularity cues such as like and dislike buttons. To answer these questions, we ran a preregistered one-week field experiment. Participants were randomly distributed to three different websites, on which they discussed a current political topic. The websites featured either (a) like buttons, (b) like and dislike button, or (c) no like/dislike buttons, and were otherwise identical. The final sample consisted of `r knitr::load_cache(label = "load-data", object = "n_matched")` participants. Although the originally preregistered model could not be confirmed, the results showed that a considerable share of actual self-disclosure could be explained by privacy concerns, gratifications, privacy deliberation, trust, and self-efficacy. The impact of the popularity cues on self-disclosure and the privacy calculus was negligible.
 keywords          : "privacy calculus, self-disclosure, popularity cues, field experiment, structural equation modeling, preregistration"
 bibliography      : 
   - [bibliography/r-references.bib]
@@ -86,7 +86,7 @@ load("data/workspace.rData")
 # Introduction
 
 Understanding why people disclose personal information online remains a critical question for both society and research. 
-Originally, it was claimed that self-disclosure is erratic and that it cannot be predicted people's personal beliefs, concerns, or standpoints. 
+Originally, it was assumed that online self-disclosure is erratic and that it cannot be predicted by people's personal beliefs, concerns, or standpoints. 
 Most prominently, the privacy paradox stated that people self-disclose vast amounts of personal information online *despite* having substantial concerns about their privacy [@barnesPrivacyParadoxSocial2006; @taddickenUsesPrivacyOnline2011].
 
 Somewhat surprisingly, and despite its popularity in the media [@newyorkpublicradioPrivacyParadox2018], the privacy paradox has garnered little empirical support. 
@@ -98,8 +98,7 @@ Specifically, by operationalizing expected risks as privacy concerns, several st
 However, although the privacy calculus has gained some momentum in academic research, several important questions remain unanswered. 
 First, we still know little about whether the privacy calculus can be replicated with behavioral data in an authentic long-term setting [@kokolakisPrivacyAttitudesPrivacy2017]. 
 Thus far, most research supporting the privacy calculus has used either self-reports of behavior [e.g., @krasnovaOnlineSocialNetworks2010], vignette approaches [e.g., @bolUnderstandingEffectsPersonalization2018], or one-shot experiments in the lab [e.g., @treptePrivacyCalculusContextualized2020]. 
-However, all three of these approaches have low external validity.
-As a result, in this study we analyze actual information sharing behavior in an authentic online setting.
+However, still missing is a long-term field study, in which actual behavior is observed in an authentic context. 
 
 Second, current research on the privacy calculus is often criticized for not explicitly focusing on the deliberation process of self-disclosure. 
 According to critics [e.g., @knijnenburgDeathPrivacyCalculus2017], showing that concerns and gratifications both correlate with self-disclosure is not evidence for an explicit weighing process of pros and cons. 
