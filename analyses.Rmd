@@ -972,6 +972,8 @@ fig_fs_m <- ggplot(
     mutate(variable = factor(variable, levels = var_names_breaks)),
   aes(x = version, y = value, fill = version)) +
   stat_summary(fun.y = mean, geom = "bar") +
+  stat_summary(aes(label=round(..y.., 2)), fun.y = mean, geom = "text", 
+               vjust = 2, size = 3) +
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = .75) +
   facet_wrap(~ variable, nrow = 2) + 
   theme_bw() +
