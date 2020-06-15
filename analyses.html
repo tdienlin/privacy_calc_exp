@@ -5436,11 +5436,19 @@ fig_coeffs</code></pre>
 <h3>Visualisation</h3>
 <p>The easiest way to assess the effect of the experimental manipulation on the variables is by visualizing their means. If 95% confidence intervals don’t overlap, the variables differ significantly across the conditions. One can quickly see that there aren’t any major effects.</p>
 <pre class="r"><code>fig_fs_m &lt;- ggplot(gather(d_fs, variable, value, -version) %&gt;% mutate(variable = factor(variable, levels = var_names_breaks)), 
+<<<<<<< HEAD
     aes(x = version, y = value, fill = version)) + stat_summary(fun.y = mean, geom = &quot;bar&quot;) + stat_summary(aes(label = round(..y.., 
     2)), fun.y = mean, geom = &quot;text&quot;, vjust = 2, size = 3) + stat_summary(fun.data = mean_cl_normal, geom = &quot;errorbar&quot;, width = 0.75) + 
     facet_wrap(~variable, nrow = 2) + theme_bw() + theme(axis.title.y = element_blank(), axis.title.x = element_blank(), 
     axis.text.x = element_blank(), plot.title = element_text(hjust = 0.5), panel.spacing = unit(0.9, &quot;lines&quot;), text = element_text(size = 12), 
     legend.position = &quot;bottom&quot;, legend.title = element_blank()) + coord_cartesian(ylim = c(0, 7)) + scale_fill_brewer(palette = &quot;Greys&quot;)
+=======
+    aes(x = version, y = value, fill = version)) + stat_summary(fun.y = mean, geom = &quot;bar&quot;) + stat_summary(fun.data = mean_cl_normal, 
+    geom = &quot;errorbar&quot;, width = 0.75) + facet_wrap(~variable, nrow = 2) + theme_bw() + theme(axis.title.y = element_blank(), 
+    axis.title.x = element_blank(), axis.text.x = element_blank(), plot.title = element_text(hjust = 0.5), panel.spacing = unit(0.9, 
+        &quot;lines&quot;), text = element_text(size = 12), legend.position = &quot;bottom&quot;, legend.title = element_blank()) + coord_cartesian(ylim = c(0, 
+    7)) + scale_fill_brewer(palette = &quot;Greys&quot;)
+>>>>>>> e788927da7683093b9a796f90a6e56408e9e8130
 fig_fs_m</code></pre>
 <p><img src="analyses_files/figure-html/unnamed-chunk-57-1.png" width="672" /></p>
 </div>
