@@ -5,7 +5,7 @@ output: "html_document"
 
 # Main page
 
-![](figures/website/website_translated.jpg)
+![](figures/website/website_translated.png)
 
 # Example comments
 

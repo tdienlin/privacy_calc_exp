@@ -1,0 +1,33 @@
+name: "privacy_calc_exp"
+output_dir: "."
+navbar:
+  title: "Home" # "Privacy Calculus Experiment"
+  type: inverse
+  left:
+    - text: "Manuscript"
+      href: manuscript.html
+    - text: "Analyses"
+      href: analyses.html
+    - text: "Items"
+      href: items.html
+    - text: "Website"
+      href: website.html
+    - text: "Preregistration"
+      href: preregistration_changes.html
+    - text: "Additional Analyses"
+      href: analyses_additional.html
+  right:
+    - text: "PDF"
+      icon: fa-file
+      href: manuscript.pdf
+    - text: "Source Code"
+      icon: fa-lg fa-github
+      href: https://github.com/tdienlin/privacy_calc_exp
+authors:
+  Tobias Dienlin:
+    href: https://tdienlin.github.io
+      
+
+output:
+  html_document:
+    theme: cosmo
