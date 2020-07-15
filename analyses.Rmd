@@ -741,6 +741,8 @@ print(fig_fs_cor)
 
 # Power analyses
 
+In what follows, we report power analyses for our study. Please note that we conduct a rudimentary power-analysis, assuming bivariate correlations. To explain, at the time we were not yet aware of power analyses for multivariate structural equation models. 
+
 ```{r include=F}
 # define pwr-criteria
 z_crit <- 1.96

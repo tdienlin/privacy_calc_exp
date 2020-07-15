@@ -2246,6 +2246,7 @@ print(fig_fs_cor)</code></pre>
 </div>
 <div id="power-analyses" class="section level1">
 <h1>Power analyses</h1>
+<p>In what follows, we report power analyses for our study. Please note that we conduct a rudimentary power-analysis, assuming bivariate correlations. To explain, at the time we were not yet aware of power analyses for multivariate structural equation models.</p>
 <p>We first estimate the sample size necessary to find small effects in 95% of all cases.</p>
 <pre class="r"><code># estimate pwr-samplesize
 n_desired &lt;- pwr.r.test(r = r_sesoi, sig.level = alpha, power = power_desired, alternative = &quot;greater&quot;) %T&gt;% print %$% n %&gt;% 

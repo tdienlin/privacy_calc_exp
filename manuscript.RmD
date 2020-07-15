@@ -256,7 +256,7 @@ Measures were collected after and not before the field phase in order not to pri
 
 We programmed an online website based on the open-source software _discourse_ (https://www.discourse.org/). 
 We conducted several pretests with students from the local university to make sure the website had an authentic feel (see Figure \@ref(fig:website)). 
-Participants used the website actively: Overall, they spent `r sum(d_raw$time_read, na.rm = TRUE) %>% "/"(60) %>% round(0) %>% format(big.mark = ",")` minutes online, wrote `r sum(d_raw$post_count, na.rm = TRUE) %>% format(big.mark = ",")` comments, and left `r sum(d_raw$reactions, na.rm = TRUE)` popularity cues. 
+Participants used the website actively: Overall, they spent `r sum(d_raw$time_read, na.rm = TRUE) %>% "/"(3600) %>% round(0) %>% format(big.mark = ",")` hours online, wrote `r sum(d_raw$post_count, na.rm = TRUE) %>% format(big.mark = ",")` comments, and clicked on `r sum(d_raw$reactions, na.rm = TRUE)` popularity cues. 
 Notably, we did not find any instances of people providing meaningless text. 
 For an example of communication that took place, see Figure \@ref(fig:comments).
 
