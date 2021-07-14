@@ -1,0 +1,50 @@
+---
+title             : "Like or Dislike, Gratifications or Concerns? Analyzing Popularity Cues and Privacy Calculus in Online Self-Disclosure"
+shorttitle        : "Popularity cues and privacy calculus"
+author:            
+  - name          : "Dienlin, Tobias"
+    email         : "tobias.dienlin@univie.ac.at"
+    affiliation   : "1"
+    corresponding : yes
+    address       : "University of Vienna, Department of Communication, 1090 Vienna, Austria"
+affiliation:
+  - id            : "1"
+    institution   : "University of Vienna"
+authornote: |
+    Dr. Tobias Dienlin is Assistant Professor of Interactive Communication at University of Vienna. He received his Ph.D. from University of Hohenheim.
+  
+    The author declares no competing interests.
+  
+    This research was funded by the Volkswagen Foundation, project "Transformations of privacy", which was awarded to Sandra Seubert, Sabine Trepte, Ruediger Grimm, & Christoph Gusy. I would like to thank all colleagues from the project. I especially thank Katharina Bräunlich, who helped both design the website and administer the data collection and importation, and Sabine Trepte, who helped design the study and provided valuable comments on the manuscript. I also thank Niklas Johannes for insightful feedback on the manuscript.
+  
+    This manuscript features a companion website, which includes the data, code, additional analyses, the preregistration, and a reproducible version of the manuscript (https://XMtRa.github.io/privacy_calc_exp_anon).
+keywords          : "privacy calculus, self-disclosure, popularity cues, field experiment, structural equation modeling, preregistration"
+wordcount         : "`r wordcountaddin::word_count('manuscript.Rmd')`"
+figsintext        : yes
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+lineno            : yes
+lang              : "english"
+class             : "man"
+classoption       : "man, donotrepeattitle"
+mask              : no
+output            : papaja::apa6_pdf
+# output            : papaja::apa6_word
+header-includes:
+  - \setlength{\parskip}{0em}
+  - \raggedbottom
+  - \note{\clearpage}
+#  - \note{\clearpage}
+editor_options: 
+  chunk_output_type: inline
+---
+```{r knitr-set-up, include=F}
+knitr::opts_chunk$set(echo=F, error=F, message=F, tidy=T, warning=F)
+```
+
+```{r load-data, include=F, cache=T}
+# Load Workspace
+load("data/workspace.RData")
+```
+

@@ -6,15 +6,20 @@ output: "html_document"
 The preregistration can be found [here](https://osf.io/a6tzc/?view_only=5d0ef9fe5e1745878cd1b19273cdf859). In what follows, we present where we decided to deviate from the preregistration.
 
 # Theoretical Background
+
+In general, instead of analyzing _self-disclosure_, we're now analyzing communication behavior. Before, we tried to operationalized self-disclosure with the log of communication frequency plus likes and dislikes. However, we realized that this operationalization is too coarse to represent self-disclosure. We now analyze the mere quantity of communication, which is much less debatable.
+
 ## Hypotheses
 
  -	We've changed the order of the hypotheses.
- -	We've changed the wording of the hypotheses (but not the content)
-    -	Before: “H1: People are more likely to communicate actively on the website, the less they are concerned about their privacy.”
-    - Now: “H1: People are more likely to self-disclose on a website when they are less concerned about their privacy.”
- -  We've changed the enumeration of the hypotheses (but not the overall number). 
+ -	We've changed the wording of the hypotheses (but not the content).
+ -  We've changed the enumeration of the hypotheses. 
     - Before, hypotheses were enumerated from 1-13.
     - Now, it's 1, 2, 3, 4, 5a, 5b, 5c, 5d, 6a, 6b, 6c, 7a, 7b.
+
+## Research Question
+
+ -  We dropped two Research Questions, because we realized that they just didn't make sense. That is, we dropped the RQ that popularity cues might affect self-efficacy and trust
 
 # Methods
 ## Participants

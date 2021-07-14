@@ -158,12 +158,167 @@ tibble("Gratifications" = vif_grats_gen, "Trust Specific" = vif_trust_spec, "Pri
   kable_styling("striped")
 ```
 
-# Additional analyses
+# Communication
 
-In what follows, you can find slightly different models that were also explored.
+In what follows, we report the results for the not-logged, that is the regular measure of communication.
 
-## Privacy calculus
-### Model 1
+## Model "Peregistered"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+COMM ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+
+# Covariates
+COMM + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_prereg <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_prereg, fit = TRUE, std = TRUE)
+rsquare_fit_prereg <- inspect(fit_prereg, what = "rsquare")["comm"]
+```
+
+## Model "Adapted"
+
+Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+COMM ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+
+# Covariates
+COMM + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
+summary(fit_adapted, fit = TRUE, std = TRUE)
+rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["comm"]
+```
+
+## Model "Simple"
+
+We now use only variables, that is specific gratifications and privacy concerns.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+COMM ~ a1*pri_con + b1*grats_spec
+
+# Covariates
+COMM + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_simple <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_simple, fit = TRUE, std = TRUE)
+rsquare_fit_simple <- inspect(fit_simple, what = "rsquare")["comm"]
+```
+
+# Preregistered Model
+
+We first analyze the same models as before, but analyzing self-disclosure instead of communication. This was how we initially preregistered the study.
+
+## Model "Peregistered"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+
+# Covariates
+self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_prereg <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_prereg, fit = TRUE, std = TRUE)
+rsquare_fit_prereg <- inspect(fit_prereg, what = "rsquare")["self_dis_log"]
+```
+
+## Model "Adapted"
+
+Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
+summary(fit_adapted, fit = TRUE, std = TRUE)
+rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["self_dis_log"]
+```
+
+## Model "Simple"
+
+We now use only variables, that is specific gratifications and privacy concerns.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+self_dis_log ~ a1*pri_con + b1*grats_spec
+
+# Covariates
+self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_simple <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_simple, fit = TRUE, std = TRUE)
+rsquare_fit_simple <- inspect(fit_simple, what = "rsquare")["self_dis_log"]
+```
 
 Building on the Model "Adapted", we now remove the variable `Trust General`.
 
@@ -192,7 +347,208 @@ summary(fit, fit = TRUE, std = TRUE)
 
 Interestingly, now almost all effects disappear. 
 
-### Model 2 
+# Results without covariates
+
+As stated in our preregistration, we also provide the results of all analyses without controlling for covariates. The results remain virtually the same.
+
+### Model "Peregistered"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+COMM_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+"
+fit_prereg <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_prereg, fit = TRUE, std = TRUE)
+rsquare_fit_prereg <- inspect(fit_prereg, what = "rsquare")["comm"]
+```
+
+### Model "Adapted"
+
+Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+COMM_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+"
+fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
+summary(fit_adapted, fit = TRUE, std = TRUE)
+rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["comm"]
+```
+
+### Model "Simple"
+
+We now use only variables, that is specific gratifications and privacy concerns.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+COMM_log ~ a1*pri_con + b1*grats_spec
+"
+fit_simple <- sem(model, data = d, estimator = "MLR", missing = "ML")
+summary(fit_simple, fit = TRUE, std = TRUE)
+rsquare_fit_simple <- inspect(fit_simple, what = "rsquare")["comm"]
+```
+
+# Results including removed participants
+
+As stated in the preregistration, we also report the analyses including the deleted participants. Results don't change meaningfully.
+
+## Baseline model
+
+```{r}
+model_baseline <- "
+  pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+  grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+  grats_par =~ GR01_07 + GR01_08 + GR01_09
+  grats_ide =~ GR01_10 + GR01_11 + GR01_12
+  grats_ext =~ GR01_13 + GR01_14 + GR01_15
+  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+  pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+  trust_gen =~ TR01_01 + TR01_05 + TR01_09
+  trust_community =~ TR01_02 + TR01_03 + TR01_04
+  trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+  trust_spec =~ trust_community + trust_provider
+  self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+    SE01_01 ~~ x*SE01_02
+    SE01_03 ~~ x*SE01_04
+  comm_log =~ COMM_log
+  
+  COMM_log ~~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec + f1*trust_gen + g1*grats_spec
+"
+fit_baseline <- sem(model_baseline, data = d_all, missing = "ML")
+summary(fit_baseline, standardized = TRUE, fit.measures = TRUE)
+```
+
+```{r}
+# extract model predicted values for items & calc means
+d_fs <- lavPredict(fit_baseline, type = "ov") %>% 
+  as.data.frame() %>% 
+  mutate(version = d_all$version, 
+         grats_gen_fs = rowMeans(select(., starts_with("GR02"))),
+         grats_spec_fs = rowMeans(select(., starts_with("GR01"))), 
+         pri_con_fs = rowMeans(select(., starts_with("PC01"))),
+         trust_gen_fs = rowMeans(select(., TR01_01, TR01_05, TR01_09)),
+         trust_spec_fs = rowMeans(select(., TR01_02: TR01_04, TR01_06 : TR01_12)),
+         pri_del_fs = rowMeans(select(., starts_with("PD01"))),
+         self_eff_fs = rowMeans(select(., starts_with("SE01")))) %>%
+  select(version, pri_con_fs, grats_gen_fs, grats_spec_fs, pri_del_fs, self_eff_fs, trust_gen_fs, trust_spec_fs, COMM_log)
+
+# combine d with d factor scores
+d_all %<>% cbind(select(d_fs, -version, -COMM_log))
+```
+
+## Privacy calculus
+## Model "Peregistered"
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
+grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
+
+COMM_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+
+# Covariates
+COMM_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_prereg <- sem(model, data = d_all, estimator = "MLR", missing = "ML")
+summary(fit_prereg, fit = TRUE, std = TRUE)
+```
+
+## Model "Adapted"
+
+Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+COMM_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+
+# Covariates
+COMM_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+"
+fit_adapted <- sem(model, data = d_all, estimator = "MLR", missing = "ML", missing = "ML")
+summary(fit_adapted, fit = TRUE, std = TRUE)
+```
+
+## Model "Simple"
+
+We now use only variables, that is specific gratifications and privacy concerns.
+
+```{r}
+model <- "
+pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
+grats_inf =~ GR01_01 + GR01_02 + GR01_03 
+grats_rel =~ GR01_04 + GR01_05 + GR01_06 
+grats_par =~ GR01_07 + GR01_08 + GR01_09
+grats_ide =~ GR01_10 + GR01_11 + GR01_12 
+grats_ext =~ GR01_13 + GR01_14 + GR01_15
+grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
+
+COMM_log ~ a1*pri_con + b1*grats_spec
+
+# Covariates
+COMM_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+"
+fit_simple <- sem(model, data = d_all, estimator = "MLR", missing = "ML")
+summary(fit_simple, fit = TRUE, std = TRUE)
+```
+
+# Alternative Models
+
+In what follows, you can find slightly different models that were also explored.
+
+## Model 1
 
 Here, we combine both privacy measures into a single one. Likewise, we combine both gratifications and trust. 
 
@@ -221,7 +577,7 @@ fit <- sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit, fit = TRUE, std = TRUE)
 ```
 
-### Model 3
+## Model 2
 
 Here, we combine both privacy measures into a single one. Likewise, we combine both gratifications and trust. 
 
@@ -250,7 +606,7 @@ fit <- sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit, fit = TRUE, std = TRUE)
 ```
 
-### Model 4
+## Model 3
 
 We now use also delete self-efficacy.
 
@@ -276,7 +632,7 @@ fit <- sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit, fit = TRUE, std = TRUE)
 ```
 
-### Model 5
+## Model 4
 
 Here, we exchange specific gratitudes for general gratitudes.
 
@@ -294,395 +650,3 @@ fit <- sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit, fit = TRUE, std = TRUE)
 ```
 
-## Effect of popularity cues
-### Like vs. control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-
-pri_con ~ a1*lik_ctrl
-grats_spec ~ a2*lik_ctrl
-self_dis_log ~ b1*pri_con + b2*grats_spec + c1*lik_ctrl
-
-# Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
-"
-fit_lik_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_lik_ctrl_simple, fit = TRUE, std = TRUE)
-```
-
-### Like & dislike vs. control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-
-pri_con + grats_spec ~ likdis_ctrl
-self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_ctrl
-
-# Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
-"
-fit_likdis_ctrl_simple <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_ctrl_simple, std = TRUE)
-```
-
-### Like & dislike vs. like
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-
-pri_con + grats_spec ~ likdis_lik
-self_dis_log ~ a1*pri_con + b1*grats_spec + likdis_lik
-
-# Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
-"
-fit_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_lik, std = TRUE, fit = TRUE)
-```
-
-# Results without covariates
-
-As stated in our preregistration, we also provide the results of all analyses without controlling for covariates. The results remain the same.
-
-## Privacy calculus
-### Model "Peregistered"
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
-"
-fit_prereg <- sem(model, data = d, estimator = "MLR", missing = "ML")
-summary(fit_prereg, fit = TRUE, std = TRUE)
-```
-
-### Model "Adapted"
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_gen =~ TR01_01 + TR01_05 + TR01_09
-
-self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
-"
-fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
-summary(fit_adapted, fit = TRUE, std = TRUE)
-```
-
-### Model "Simple"
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-
-self_dis_log ~ a1*pri_con + b1*grats_spec
-"
-fit_simple <- sem(model, data = d, estimator = "MLR", missing = "ML")
-summary(fit_simple, fit = TRUE, std = TRUE)
-```
-
-## Effects of popularity cues
-### Preregistered
-#### Like vs. Control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
-"
-fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
-```
-
-#### Like & Dislike vs. Control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
-"
-fit_likdis_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)
-```
-
-#### Like & Dislike vs. Like
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_lik
-"
-
-fit_likdis_lik <- sem(model = model, data = dplyr::filter(d_all, !is.na(likdis_lik)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_lik, fit = TRUE, std = TRUE)
-```
-
-# Results including removed participants
-
-As stated in the preregistration, we also report the analyses including the deleted participants. Results don't change meaningfully.
-
-## Baseline model
-
-```{r}
-model_baseline <- "
-  pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-  grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-  grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-  grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-  grats_par =~ GR01_07 + GR01_08 + GR01_09
-  grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-  grats_ext =~ GR01_13 + GR01_14 + GR01_15
-  grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-  pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-  trust_gen =~ TR01_01 + TR01_05 + TR01_09
-  trust_community =~ TR01_02 + TR01_03 + TR01_04
-  trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-  trust_spec =~ trust_community + trust_provider
-  self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-    SE01_01 ~~ x*SE01_02
-    SE01_03 ~~ x*SE01_04
-  self_dis_lg =~ self_dis_log
-  
-  self_dis_lg ~~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec + f1*trust_gen + g1*grats_spec
-"
-fit_baseline <- sem(model_baseline, data = d_all, missing = "ML")
-summary(fit_baseline, standardized = TRUE, fit.measures = TRUE)
-```
-
-```{r}
-# extract model predicted values for items & calc means
-d_fs <- lavPredict(fit_baseline, type = "ov") %>% 
-  as.data.frame() %>% 
-  mutate(version = d_all$version, 
-         grats_gen_fs = rowMeans(select(., starts_with("GR02"))),
-         grats_spec_fs = rowMeans(select(., starts_with("GR01"))), 
-         pri_con_fs = rowMeans(select(., starts_with("PC01"))),
-         trust_gen_fs = rowMeans(select(., TR01_01, TR01_05, TR01_09)),
-         trust_spec_fs = rowMeans(select(., TR01_02: TR01_04, TR01_06 : TR01_12)),
-         pri_del_fs = rowMeans(select(., starts_with("PD01"))),
-         self_eff_fs = rowMeans(select(., starts_with("SE01")))) %>%
-  select(version, pri_con_fs, grats_gen_fs, grats_spec_fs, pri_del_fs, self_eff_fs, trust_gen_fs, trust_spec_fs, self_dis_log)
-
-# combine d with d factor scores
-d_all %<>% cbind(select(d_fs, -version, -self_dis_log))
-```
-
-## Privacy calculus
-### Model "Peregistered"
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_prereg <- sem(model, data = d_all, estimator = "MLR", missing = "ML")
-summary(fit_prereg, fit = TRUE, std = TRUE)
-```
-
-### Model "Adapted"
-
-Building on the preregistered model, instead of general gratifications and specific trust, we now use specific gratifications and general trust.
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_gen =~ TR01_01 + TR01_05 + TR01_09
-
-self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
-
-# Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_adapted <- sem(model, data = d_all, estimator = "MLR", missing = "ML", missing = "ML")
-summary(fit_adapted, fit = TRUE, std = TRUE)
-```
-
-### Model "Simple"
-
-We now use only variables, that is specific gratifications and privacy concerns.
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07  
-grats_inf =~ GR01_01 + GR01_02 + GR01_03 
-grats_rel =~ GR01_04 + GR01_05 + GR01_06 
-grats_par =~ GR01_07 + GR01_08 + GR01_09
-grats_ide =~ GR01_10 + GR01_11 + GR01_12 
-grats_ext =~ GR01_13 + GR01_14 + GR01_15
-grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
-
-self_dis_log ~ a1*pri_con + b1*grats_spec
-
-# Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
-"
-fit_simple <- sem(model, data = d_all, estimator = "MLR", missing = "ML")
-summary(fit_simple, fit = TRUE, std = TRUE)
-```
-
-## Effects of popularity cues
-### Preregistered
-
-#### Like vs. Control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d_all*self_eff + e*trust_spec + f*lik_ctrl
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d_all, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
-```
-
-#### Like & Dislike vs. Control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d_all*self_eff + e*trust_spec + f*likdis_ctrl
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_likdis_ctrl <- sem(model = model, data = dplyr::filter(d_all, !is.na(likdis_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)
-```
-
-#### Like & Dislike vs. Like
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d_all*self_eff + e*trust_spec + f*likdis_lik
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-
-fit_likdis_lik <- sem(model = model, data = dplyr::filter(d_all, !is.na(likdis_lik)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_lik, fit = TRUE, std = TRUE)
-```

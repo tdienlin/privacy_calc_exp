@@ -26,9 +26,10 @@ We first load the packages; load and wrangle data; and extract sample characteri
 ```{r results='hide'}
 # install github packages
 # devtools::install_github("tdienlin/td@v.0.0.2.3")  # uncomment to install
+# devtools::install_github("tdienlin/td")  # uncomment to install
 
 # define packages
-packages <- c("cowplot", "devtools", "faoutlier", "GGally", "gganimate",
+packages <- c("brms", "cowplot", "devtools", "faoutlier", "GGally", "gganimate",
               "kableExtra", "knitr", "lavaan", "magrittr", "MVN", "psych", "pwr", 
               "quanteda", "semTools", "tidyverse", "td")
 
@@ -58,6 +59,9 @@ d <- d_raw %>%
                   labels = c("<30", "30-39", "40-49", "50-59", ">59")),
     
     # contrasts
+    like = recode(version, "Control" = 0, "Like" = 1, "Like & Dislike" = 0),
+    likedislike = recode(version, "Control" = 0, "Like" = 0, "Like & Dislike" = 1),
+    control = recode(version, "Control" = 1, "Like" = 0, "Like & Dislike" = 0),
     lik_ctrl = recode(version, "Control" = 0, "Like" = 1),
     lik_ctrl = na_if(lik_ctrl, "Like & Dislike"),
     likdis_ctrl = recode(version, "Control" = 0, "Like & Dislike" = 1),
@@ -82,16 +86,17 @@ d <- d_raw %>%
     SE01_06 = 8 - SE01_06,
     
     # behavioral data
-    words = replace_na(.$words, 0),
+    COMM = replace_na(.$words, 0),
     self_dis = words + (reactions * 2),
     time_read_MIN = time_read / 60,
     time_sum_min_t2 = TIME_SUM_t2 / 60,
     
     # take logarithm
     posts_log = log1p(.$post_count),
-    time_log = log1p(.$time_read), 
+    time_log = log1p(.$time_read),
     posts_read_count_log = log1p(.$posts_read_count),
     words_log = log1p(.$words),
+    COMM_log = log1p(COMM),
     self_dis_log = log1p(self_dis)
   )
 
@@ -103,7 +108,7 @@ var_names <- c("Privacy concerns",
                "Self-efficacy", 
                "General trust", 
                "Specific trust",
-               "Self-disclosure")
+               "Communication log")
 
 var_names_breaks <- c("Privacy\nconcerns", 
                       "General\ngratifications", 
@@ -112,7 +117,7 @@ var_names_breaks <- c("Privacy\nconcerns",
                       "Self-\nefficacy", 
                       "General\ntrust", 
                       "Specific\ntrust",
-                      "Self-\ndisclosure")
+                      "Communi-\ncation (log)")
 
 # Extract sample characteristics and descriptives.
 # sample descriptives t1
@@ -188,7 +193,7 @@ Using the participation platform I had ...
 
  1. ... concerns about what happens to my data.
  2. ... concerns about disclosing information about myself.
- 3. ... no concerns.
+ 3. ... no concerns. (reversed)
  4. ... concerns that others could discover my real identity (i.e. my last and first name).
  5. ... concerns that information about myself could fall into wrong hands.
  6. ... concerns that others could discover what my political views are.
@@ -216,7 +221,7 @@ name <- "pricon"
 model <- "
 pri_con =~ PC01_01 + PC01_02 + PC01_03 + PC01_04 + PC01_05 + PC01_06 + PC01_07
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -232,7 +237,7 @@ Factor loadings:
 inspect(fit,what="std")$lambda
 ```
 
-Shows that PC01_03 doesn't load well. As it's an inverted item that's not surprising. Also from a theoretic perspective it's suboptional, because it doesn't explicitly focus on privacy, but just concerns in general. Will be deleted.
+Shows that PC01_03 doesn't load well. As it's an inverted item that's not surprising. Also from a theoretic perspective it's suboptimal, because it doesn't explicitly focus on privacy, but just concerns in general. Will be deleted.
 
 ### CFA 2
 
@@ -240,7 +245,7 @@ Shows that PC01_03 doesn't load well. As it's an inverted item that's not surpri
 model <- "
 pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -291,7 +296,7 @@ name <- "grats_general"
 model <- "
 grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -369,7 +374,7 @@ model <- "
   grats_ext =~ GR01_13 + GR01_14 + GR01_15
   grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -418,7 +423,7 @@ name <- "pridel"
 model <- "
 pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -463,7 +468,7 @@ name <- "trust_gen"
 model <- "
 trust =~ TR01_01 + a*TR01_05 + a*TR01_09
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -528,7 +533,7 @@ trust_system =~ TR01_10 + TR01_11 + TR01_12
 
 trust =~ trust_community + trust_provider + trust_system
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -555,7 +560,7 @@ trust_community =~ TR01_02 + TR01_03 + TR01_04
 trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
 trust =~ b*trust_community + b*trust_provider
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -579,8 +584,8 @@ Warning disappears, results show adequate fit.
  2. I felt technically competent enough to write a comment.
  3. In terms of the topic, I felt competent enough to express my opinion.
  4. I found it easy to express my opinion regarding the topic.
- 5. I found it complicated to write a comment.
- 6. I was overburdened to write a comment.
+ 5. I found it complicated to write a comment. (reversed)
+ 6. I was overburdened to write a comment. (reversed)
 
 ### Distributions
 
@@ -604,7 +609,7 @@ name <- "self-eff"
 model <- "
 self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04 + SE01_05 + SE01_06
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -631,7 +636,7 @@ self_eff_pos =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
 SE01_01 ~~ x*SE01_02
 SE01_03 ~~ x*SE01_04
 "
-fit <- sem(model = model, data = d, estimator = "MLR", missing = "ML")
+fit <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 ```
 
 Model fit:
@@ -648,6 +653,29 @@ inspect(fit,what="std")$lambda
 ```
 
 Adapted version shows better and adequate fit.
+
+## Communication
+### Density plot
+
+```{r}
+ggplot(gather(select(d, COMM)), 
+       mapping = aes(x = value)) +
+  geom_density() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+```
+
+We see that Communication is severely skewed. Will hence be log-scaled for SEMs.
+
+## Communication Logged
+
+```{r}
+ggplot(gather(select(d, COMM_log)), 
+       mapping = aes(x = value)) +
+  geom_density() +
+  facet_wrap(~key, nrow=1) + 
+  theme_bw()
+```
 
 ## Baseline model
 
@@ -671,11 +699,12 @@ model_baseline <- "
   self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
     SE01_01 ~~ x*SE01_02
     SE01_03 ~~ x*SE01_04
-  self_dis_lg =~ self_dis_log
+  comm_log =~ COMM_log
   
-  self_dis_lg ~~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec + f1*trust_gen + g1*grats_spec
+ comm_log ~~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec + f1*trust_gen + g1*grats_spec
 "
-fit_baseline <- sem(model_baseline, data = d, missing = "ML")
+
+fit_baseline <- lavaan::sem(model_baseline, data = d, missing = "ML")
 summary(fit_baseline, standardized = TRUE, fit.measures = TRUE)
 ```
 
@@ -695,10 +724,20 @@ d_fs <- lavPredict(fit_baseline, type = "ov") %>%
          trust_spec_fs = rowMeans(select(., TR01_02: TR01_04, TR01_06 : TR01_12)),
          pri_del_fs = rowMeans(select(., starts_with("PD01"))),
          self_eff_fs = rowMeans(select(., starts_with("SE01")))) %>%
-  select(version, pri_con_fs, grats_gen_fs, grats_spec_fs, pri_del_fs, self_eff_fs, trust_gen_fs, trust_spec_fs, self_dis_log)
+  select(version, pri_con_fs, grats_gen_fs, grats_spec_fs, pri_del_fs, self_eff_fs, trust_gen_fs, trust_spec_fs, COMM_log)
 
 # combine d with d factor scores
-d %<>% cbind(select(d_fs, -version, -self_dis_log))
+d %<>% cbind(select(d_fs, -version, -COMM_log))
+
+# add centered predictors for interaction analyses later
+d %<>%
+  mutate(pri_con_fs_c = scale(pri_con_fs, scale = FALSE),
+         grats_spec_fs_c = scale(grats_spec_fs, scale = FALSE),
+         pri_del_fs_c = scale(pri_del_fs, scale = FALSE),
+         trust_gen_fs_c = scale(trust_gen_fs, scale = FALSE),
+         self_eff_fs_c = scale(self_eff_fs, scale = FALSE),
+         con_x_del = pri_con_fs_c * pri_del_fs_c,
+         grats_x_del = grats_spec_fs_c * pri_del_fs_c)
 
 # rename for plotting
 d_fs %<>% set_names(c("version", var_names_breaks))
@@ -719,8 +758,8 @@ factor_val_tab <- rbind(pricon_factor_val,
                         selfeff_factor_val,
                         trust_gen_factor_val,
                         trust_spec_factor_val) %$%
-  cbind(des[-8, ], .) %>%
-  set_rownames(var_names[-8])
+  cbind(des[-c(8), ], .) %>%
+  set_rownames(var_names[-c(8)])
 
 factor_val_tab %>% 
   kable() %>% 
@@ -730,18 +769,18 @@ factor_val_tab %>%
 
 In what follows, we report zero-order correlations, distributions, and scatterplots of the variables' factor scores.
 
-```{r fig.height=8, fig.width=8}
-fig_fs_cor <- ggpairs(
-  select(d_fs, -version),
-  upper = list(continuous = "cor"),
-  lower = list(continuous = wrap(td::scat_plot, coords = c(1, 7, 0, 7)))) +
+```{r fig.height=9, fig.width=9}
+corr_plot <- ggpairs(select(d_fs, -version),
+                     upper = list(continuous = cor_plot),
+                     lower = list(continuous = wrap(td::scat_plot, coords = c(1, 7, 0, 7)))) + 
   theme_bw()
-print(fig_fs_cor)
+print(corr_plot)
+ggsave("figures/results/cor_plot.png")
 ```
 
 # Power analyses
 
-In what follows, we report power analyses for our study. Please note that we conduct a rudimentary power-analysis, assuming bivariate correlations. To explain, at the time we were not yet aware of power analyses for multivariate structural equation models. 
+In what follows, we report power analyses for our study. Please note that we conduct a rudimentary power-analysis, assuming bivariate correlations. To explain, at the time we were not yet aware of the existence of power analyses for multivariate structural equation models. 
 
 ```{r include=F}
 # define pwr-criteria
@@ -789,7 +828,7 @@ pwr.r.test(n = n_final, power = power_desired, sig.level = alpha, alternative = 
 
 ```{r}
 # create subset of data with all items that were used
-d_sub <- d[, c("self_dis_log", "GR02_01", "GR02_02", "GR02_03", "GR02_04", "GR02_05", "PC01_01", "PC01_02", "PC01_04", "PC01_05", "PC01_06", "PC01_07", "TR01_02", "TR01_03", "TR01_04", "TR01_06", "TR01_07", "TR01_08", "TR01_10", "TR01_11", "TR01_12", "PD01_01", "PD01_02", "PD01_03", "PD01_04", "PD01_05", "SE01_01", "SE01_02", "SE01_03", "SE01_04", "male", "age", "edu")]
+d_sub <- d[, c("COMM", "GR02_01", "GR02_02", "GR02_03", "GR02_04", "GR02_05", "PC01_01", "PC01_02", "PC01_04", "PC01_05", "PC01_06", "PC01_07", "TR01_02", "TR01_03", "TR01_04", "TR01_06", "TR01_07", "TR01_08", "TR01_10", "TR01_11", "TR01_12", "PD01_01", "PD01_02", "PD01_03", "PD01_04", "PD01_05", "SE01_01", "SE01_02", "SE01_03", "SE01_04", "male", "age", "edu")]
 
 # test multivariate normal distribution
 mvn_result <- mvn(d_sub, mvnTest = "mardia")
@@ -800,22 +839,24 @@ Shows that multivariate normal distribution is violated. We hence use maximum li
 
 ## Influential cases
 
-In what follows we test for influential cases in baseline model, to detect potentially corrupt data (e.g., people who provided response patterns). Specifically, we compute Cook's distance.
+[Note: These lines stopped working after some time, potentially due to changes in package.]
 
-```{r eval=T}
+In what follows we test for influential cases in the baseline model, to detect potentially corrupt data (e.g., people who provided response patterns). Specifically, we compute Cook's distance.
+
+```{r eval=F}
 cooks_dis <- gCD(d, model_baseline)
 plot(cooks_dis)
 ```
 
 The following ten cases have a particularly strong influence on the baseline model.
 
-```{r eval=T}
+```{r eval=F}
 infl_cases <- invisible(rownames(print(cooks_dis)))
 ```
 
 Let's inspect these cases.
 
-```{r eval=T}
+```{r eval=F}
 infl_cases_tokens <- d[infl_cases, "case_token"] %>% as_vector()
 d %>% 
   filter(case_token %in% infl_cases_tokens) %>% 
@@ -843,15 +884,21 @@ trust_community =~ TR01_02 + TR01_03 + TR01_04
 trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
 trust_spec =~ trust_community + trust_provider
 
-self_dis_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
+COMM_log ~ a1*pri_con + b1*grats_gen + c1*pri_delib + d1*self_eff + e1*trust_spec
 
 # Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+COMM_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+
+# Covariances
+male ~~ age + edu
+age ~~ edu
 "
-fit_prereg <- sem(model, data = d, estimator = "MLR", missing = "ML")
+fit_prereg <- lavaan::sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit_prereg, fit = TRUE, std = TRUE)
-rsquare_fit_prereg <- inspect(fit_prereg, what = "rsquare")["self_dis_log"]
+rsquare_fit_prereg <- inspect(fit_prereg, what = "rsquare")["comm"]
 ```
+
+Results show that there's only one significant predictor of Communication, being self-efficacy. The other predictors are in the direction as planned, albeit not significant. Trust, however, shows the inverse relation as effect, that is, more trust, less communication.
 
 ### Model "Adapted"
 
@@ -872,19 +919,59 @@ self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
   SE01_03 ~~ x*SE01_04
 trust_gen =~ TR01_01 + TR01_05 + TR01_09
 
-self_dis_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
+COMM_log ~ a1*pri_con + b1*grats_spec + c1*pri_delib + d1*self_eff + e1*trust_gen
 
 # Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_01 + TR01_05 + TR01_09 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+COMM_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 + TR01_01 + TR01_05 + TR01_09 ~ male + age + edu
+
+# Covariances
+male ~~ age + edu
+age ~~ edu
 "
-fit_adapted <- sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
+fit_adapted <- lavaan::sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit_adapted, fit = TRUE, std = TRUE)
-rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["self_dis_log"]
+rsquare_fit_adapted <- inspect(fit_adapted, what = "rsquare")["comm"]
 ```
+
+Effects become a bit larger and significant, which seems to make sense. However, this also includes trust, which is a significant negative predictor of communication.
+
+### Model "Interaction"
+
+We now estimate an interaction model, as suggested by an anomymous reviewer. To estimate the interaction we'll use factor scores.
+
+```{r}
+model <- "
+self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
+  SE01_01 ~~ x*SE01_02
+  SE01_03 ~~ x*SE01_04
+trust_gen =~ TR01_01 + TR01_05 + TR01_09
+
+COMM_log ~ a1*pri_con_fs_c + b1*grats_spec_fs_c + c1*pri_del_fs_c + con_x_del + grats_x_del + d1*self_eff + e1*trust_gen
+
+# Covariates
+COMM_log + SE01_01 + SE01_02 + SE01_03 + SE01_04 + TR01_01 + TR01_05 + TR01_09 + pri_con_fs_c + grats_spec_fs_c + pri_del_fs_c + con_x_del ~ male + age + edu
+
+# Covariances
+pri_con_fs_c ~~ grats_spec_fs_c + pri_del_fs_c + con_x_del + grats_x_del + self_eff + trust_gen
+grats_spec_fs_c ~~ pri_del_fs_c + con_x_del + grats_x_del + self_eff + trust_gen
+pri_del_fs_c ~~ con_x_del + grats_x_del + self_eff + trust_gen
+con_x_del ~~ grats_x_del + self_eff + trust_gen
+grats_x_del ~~ self_eff + trust_gen
+self_eff ~~ trust_gen
+male ~~ age + edu
+age ~~ edu
+"
+
+fit_inter <- lavaan::sem(model, data = d, estimator = "MLR", missing = "ML", missing = "ML")
+summary(fit_inter, fit = TRUE, std = TRUE)
+rsquare_fit_inter <- inspect(fit_inter, what = "rsquare")["comm"]
+```
+
+Results are interesting. Both interaction effects are significant. If Deliberation increases, the effect of concerns on communication increase (net effect). If Deliberation increases, the effect of gratifications on communication decrease. Hence, could imply that if people think more, concerns more relevant than benefits.
 
 ### Model "Simple"
 
-We now use only variables, that is specific gratifications and privacy concerns.
+We now use only two variables, namely specific gratifications and privacy concerns.
 
 ```{r}
 model <- "
@@ -896,15 +983,21 @@ grats_ide =~ GR01_10 + GR01_11 + GR01_12
 grats_ext =~ GR01_13 + GR01_14 + GR01_15
 grats_spec =~ grats_inf + grats_rel + grats_par + grats_ide + grats_ext
 
-self_dis_log ~ a1*pri_con + b1*grats_spec
+COMM_log ~ a1*pri_con + b1*grats_spec
 
 # Covariates
-self_dis_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+COMM_log + GR01_01 + GR01_02 + GR01_03 + GR01_04 + GR01_05 + GR01_06 + GR01_07 + GR01_08 + GR01_09 + GR01_10 + GR01_11 + GR01_12 + GR01_13 + GR01_14 + GR01_15 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 ~ male + age + edu
+
+# Covariances
+male ~~ age + edu
+age ~~ edu
 "
-fit_simple <- sem(model, data = d, estimator = "MLR", missing = "ML")
+fit_simple <- lavaan::sem(model, data = d, estimator = "MLR", missing = "ML")
 summary(fit_simple, fit = TRUE, std = TRUE)
-rsquare_fit_simple <- inspect(fit_simple, what = "rsquare")["self_dis_log"]
+rsquare_fit_simple <- inspect(fit_simple, what = "rsquare")["comm"]
 ```
+
+Works as hypothesized.
 
 ### Comparison
 
@@ -958,49 +1051,153 @@ fig_coeffs <- ggplot(d_coeffs, aes(x = b, y = Predictor)) +
         plot.title = element_text(hjust = .5),
         panel.spacing = unit(.9, "lines"),
         text = element_text(size = 12)) +
-  coord_cartesian(xlim = c(-1.5, 1.5))
-
+  coord_cartesian(xlim = c(-1.3, 1.3))
+ggsave("figures/results/coeffs.png")
 fig_coeffs
+```
+
+### Model "BRMS"
+
+Because the dependent variable is a zero-inflated Poisson distribution, we'll also run Bayesian models, which can explicitly account for this distribution.
+
+#### Adapted Model
+
+```{r}
+fit_brms <- brm(COMM ~ pri_con_fs + grats_spec_fs + pri_del_fs + self_eff_fs + trust_gen_fs, data = d, family = zero_inflated_poisson())
+d_predicted <- predict(fit_brms) %>% as.data.frame()
+summary(fit_brms)
+```
+
+Shows very similar results compared to SEM. Again, trust a negative predictor.
+
+##### Plot predicted values
+
+Let's also look at how values are predicted to see how model performs.
+
+```{r}
+d_predicted <- predict(fit_brms) %>% as.data.frame()
+ggplot(d_predicted, aes(Estimate)) + 
+  geom_density()
+```
+
+Let's also plot actual values.
+
+```{r}
+# plot actual values
+ggplot(d, aes(COMM)) + 
+  geom_density()
+```
+
+Model-predicted values don't closely match actual values.
+
+#### Without Trust
+
+Because trust has a negative coefficient, which seems generally implausible, we also run a model without trust.
+
+```{r}
+fit_brms <- brm(COMM ~ pri_con_fs + grats_spec_fs + pri_del_fs + self_eff_fs, data = d, family = zero_inflated_poisson())
+d_predicted <- predict(fit_brms) %>% as.data.frame()
+summary(fit_brms)
+```
+
+Seems to make sense. Self-Efficacy a strong predictor of behavior.
+
+#### Simple model
+
+```{r}
+fit_brms_simple <- brm(COMM ~ pri_con_fs + grats_spec_fs, data = d, family = zero_inflated_poisson())
+summary(fit_brms_simple)
+```
+
+Also works, showing somewhat stronger effects.
+
+#### Simple hurdle model
+
+```{r}
+fit_brms_simple_hurdle <- brm(bf(COMM ~ pri_con_fs + grats_spec_fs, hu ~ pri_con_fs + grats_spec_fs), data = d, family = hurdle_poisson())
+summary(fit_brms_simple_hurdle)
+```
+
+Results don't differ markedly.
+
+#### Interaction model
+
+```{r}
+fit_brms <- brm(COMM ~ pri_con_fs_c * grats_spec_fs_c, data = d, family = zero_inflated_poisson())
+summary(fit_brms)
+```
+
+The effect of concerns on communication become weaker if gratifications increase.
+
+#### Interaction model including deliberation
+
+```{r}
+fit_brms <- brm(COMM ~ pri_con_fs_c * grats_spec_fs_c + pri_con_fs_c * pri_del_fs_c + grats_spec_fs_c * pri_del_fs_c, data = d, family = zero_inflated_poisson())
+summary(fit_brms)
 ```
 
 ## Effects of popularity cues
 ### Visualisation
 
-The easiest way to assess the effect of the experimental manipulation on the variables is by visualizing their means. If 95% confidence intervals don't overlap, the variables differ significantly across the conditions. One can quickly see that there aren't any major effects.
+The easiest way to assess the effect of the experimental manipulation on the variables is by visualizing their means. If 83% confidence intervals don't overlap, the variables differ significantly across the conditions. One can quickly see that there aren't any major effects.
 
 ```{r}
+# violin plot
 fig_fs_m <- ggplot(
   gather(d_fs, variable, value, -version) %>% 
     mutate(variable = factor(variable, levels = var_names_breaks)),
   aes(x = version, y = value, fill = version)) +
-  stat_summary(fun.y = mean, geom = "bar") +
-  stat_summary(aes(label=round(..y.., 2)), fun.y = mean, geom = "text", 
-               vjust = 2, size = 3) +
-  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = .75) +
+  geom_violin(trim = TRUE) +
+  stat_summary(fun.y = mean, geom = "point") +
+  #  stat_summary(aes(label = round(..y.., 2)), fun.y = mean, geom = "text", 
+  #              vjust = 0, size = 3
+  #              ) +
+  #  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = .5) +
+  stat_summary(fun.data = mean_se, fun.args = list(mult = 1.39), geom = "errorbar", width = .5) + 
   facet_wrap(~ variable, nrow = 2) + 
   theme_bw() +
   theme(axis.title.y = element_blank(),
         axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
+        # axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5),
         panel.spacing = unit(.9, "lines"),
         text = element_text(size = 12),
-        legend.position="bottom",
+        legend.position="none",
         legend.title = element_blank()) +
   coord_cartesian(ylim = c(0, 7)) +
-  scale_fill_brewer(palette="Greys")
+  scale_fill_brewer(palette = "Greys")
+ggsave("figures/results/violin_plot.png")
 fig_fs_m
+
+# barplot
+# fig_fs_m <- ggplot(
+#   gather(d_fs, variable, value, -version) %>% 
+#     mutate(variable = factor(variable, levels = var_names_breaks)),
+#   aes(x = version, y = value, fill = version)) +
+#   stat_summary(fun.y = mean, geom = "bar") +
+#   stat_summary(aes(label=round(..y.., 2)), fun.y = mean, geom = "text", 
+#                vjust = 2, size = 3) +
+#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = .75) +
+#   facet_wrap(~ variable, nrow = 2) + 
+#   theme_bw() +
+#   theme(axis.title.y = element_blank(),
+#         axis.title.x = element_blank(),
+#         axis.text.x = element_blank(),
+#         plot.title = element_text(hjust = .5),
+#         panel.spacing = unit(.9, "lines"),
+#         text = element_text(size = 12),
+#         legend.position="bottom",
+#         legend.title = element_blank()) +
+#   coord_cartesian(ylim = c(0, 7)) +
+#   scale_fill_brewer(palette="Greys")
+# fig_fs_m
 ```
 
 ### Preregistered
 
 In what follows, we also report explicit statistical tests of the differences between the conditions using contrasts. 
 
-However, please note that several models did not converge. This is likely because the models remain complex, while the sample size significantly decreases (i.e., only 2/3 of prior models).
-
-For these models, we report less complex versions using factors scores, which converge successfully.
-
-#### Like vs. Control
+#### Like & Like-Dislike vs. Control
 
 ```{r}
 model <- "
@@ -1014,17 +1211,21 @@ trust_community =~ TR01_02 + TR01_03 + TR01_04
 trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
 trust_spec =~ trust_community + trust_provider
 
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+pri_con + grats_gen + pri_delib + self_eff + trust_spec + COMM ~ like + likedislike
+
+# pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ like + likedislike
+# COMM ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*like + g*likedislike
 
 # Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+# COMM + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
 "
-fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
+fit_lik_ctrl <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
 ```
 
-Model did not converge. It's likely too complex given the reduced number of participants. The trust subdimension "provider" seems to cause trouble. Will hence be substituted with factor score.
+No significant effects of popularity cues on privacy calculus.
+
+#### Like-Dislike & Control vs. Like
 
 ```{r}
 model <- "
@@ -1034,98 +1235,29 @@ pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
 self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
   SE01_01 ~~ x*SE01_02
   SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
+trust_community =~ TR01_02 + TR01_03 + TR01_04
+trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
+trust_spec =~ trust_community + trust_provider
 
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ lik_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*lik_ctrl
+pri_con + grats_gen + pri_delib + self_eff + trust_spec + COMM ~ likedislike + control
+
+# pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ like + likedislike
+# COMM ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*like + g*likedislike
 
 # Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
+# COMM + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
 "
-fit_lik_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(lik_ctrl)), estimator = "MLR", missing = "ML")
+fit_lik_ctrl <- lavaan::sem(model = model, data = d, estimator = "MLR", missing = "ML")
 summary(fit_lik_ctrl, fit = TRUE, std = TRUE)
 ```
 
-Now converges sucessfully.
-
-#### Like & Dislike vs. Control
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_likdis_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)
-```
-
-Again, does not converge; will use `Trust Specific` as factor score.
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_spec =~ trust_spec_fs
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_ctrl
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_ctrl
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-fit_likdis_ctrl <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_ctrl)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_ctrl, fit = TRUE, std = TRUE)
-```
-
-#### Like & Dislike vs. Like
-
-```{r}
-model <- "
-pri_con =~ PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07
-grats_gen =~ GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05
-pri_delib =~ PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05
-self_eff =~ SE01_01 + SE01_02 + SE01_03 + SE01_04
-  SE01_01 ~~ x*SE01_02
-  SE01_03 ~~ x*SE01_04
-trust_community =~ TR01_02 + TR01_03 + TR01_04
-trust_provider =~ TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12
-trust_spec =~ trust_community + trust_provider
-
-pri_con + grats_gen + pri_delib + self_eff + trust_spec ~ likdis_lik
-self_dis_log ~ a*pri_con + b*grats_gen + c*pri_delib + d*self_eff + e*trust_spec + f*likdis_lik
-
-# Covariates
-self_dis_log + GR02_01 + GR02_02 + GR02_03 + GR02_04 + GR02_05 + PC01_01 + PC01_02 + PC01_04 + PC01_05 + PC01_06 + PC01_07 + TR01_02 + TR01_03 + TR01_04 + TR01_06 + TR01_07 + TR01_08 + TR01_10 + TR01_11 + TR01_12 + PD01_01 + PD01_02 + PD01_03 + PD01_04 + PD01_05 + SE01_01 + SE01_02 + SE01_03 + SE01_04 ~ male + age + edu
-"
-
-fit_likdis_lik <- sem(model = model, data = dplyr::filter(d, !is.na(likdis_lik)), estimator = "MLR", missing = "ML")
-summary(fit_likdis_lik, fit = TRUE, std = TRUE)
-```
-
-This time, does converge, no need to change model.
+No significant effects of popularity cues on privacy calculus.
 
 ```{r SaveData, include=F, cache=F}
 write.csv(d, file = "data/data.csv", row.names = FALSE)
 save(d, d_raw, d_all, d_fs,
      fit_baseline, fit_prereg, fit_adapted, fit_simple,
-     fig_fs_m, fig_fs_cor, fig_coeffs,
+     fig_fs_m, fig_coeffs,
      des_pridel,
      model_comp_tab, factor_val_tab,
      n_comments, n_desired, n_posts, n_speeding, n_time, n_words,
